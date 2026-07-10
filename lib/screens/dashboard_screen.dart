@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
 import '../theme.dart';
+import 'vision360_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -39,13 +40,21 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     const Text('À faire aujourd\'hui', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     TextButton(
-                      onPressed: () {},
+                      // Point d'entrée vers Vision360 : cette section
+                      // n'affiche qu'un extrait de returningSoon (take(3)),
+                      // "Voir tout" ouvre la vue complète avec Liste/
+                      // Chronologie et le reste des données Vision360.
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const Vision360Screen()),
+                        );
+                      },
                       child: const Text('Voir tout', style: TextStyle(color: AppTheme.primary)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                _buildTasksList(visionAsync),
+                _buildTasksList(context, visionAsync),
               ]),
             ),
           ),
@@ -104,7 +113,6 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildTimeToggle() {
-    // Transform up slightly to overlap header
     return Transform.translate(
       offset: const Offset(0, -32),
       child: Container(
@@ -136,11 +144,11 @@ class DashboardScreen extends ConsumerWidget {
       ),
       alignment: Alignment.center,
       child: Text(
-        text, 
+        text,
         style: TextStyle(
           color: active ? Colors.white : AppTheme.textSecondary,
           fontWeight: active ? FontWeight.bold : FontWeight.normal,
-        )
+        ),
       ),
     );
   }
@@ -177,11 +185,10 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     TextSpan(text: '6 150', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: AppTheme.textPrimary)),
                     TextSpan(text: ',000 DT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textPrimary)),
-                  ]
-                )
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
-              // Dummy chart curve
               SizedBox(
                 height: 40,
                 child: CustomPaint(
@@ -247,8 +254,8 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
                   TextSpan(text: '65', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: AppTheme.textPrimary)),
                   TextSpan(text: '%', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textPrimary)),
-                ]
-              )
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             LinearProgressIndicator(
@@ -264,13 +271,13 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTasksList(AsyncValue<Map<String, dynamic>> visionAsync) {
+  Widget _buildTasksList(BuildContext context, AsyncValue<Map<String, dynamic>> visionAsync) {
     return visionAsync.when(
       data: (data) {
         final soon = data['returningSoon'] as List? ?? [];
         if (soon.isEmpty) return const Text('Rien de prévu');
         return Column(
-          children: soon.take(3).map((e) => _buildTaskCard(e)).toList(),
+          children: soon.take(3).map((e) => _buildTaskCard(context, e)).toList(),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -278,40 +285,50 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTaskCard(dynamic task) {
-    // We mock the task card based on the design
+  Widget _buildTaskCard(BuildContext context, dynamic task) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: const BorderSide(color: Color(0xFFE5E7EB)),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: const Border(left: BorderSide(color: AppTheme.warning, width: 4)),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AppTheme.warning.withOpacity(0.1), shape: BoxShape.circle),
-              child: const Icon(Icons.refresh, color: AppTheme.warning, size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Retour prévu à 14:00', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 4),
-                  Text('${task['brand']} ${task['model']} • ${task['client_name']}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        // Chaque tâche mène aussi vers Vision360 -- un vrai lien vers le
+        // détail de cette réservation précise nécessiterait un id
+        // exploitable (absent de returningSoon, cf. doc API §4.5).
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const Vision360Screen()),
+          );
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: const Border(left: BorderSide(color: AppTheme.warning, width: 4)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: AppTheme.warning.withOpacity(0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.refresh, color: AppTheme.warning, size: 20),
               ),
-            ),
-            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
-          ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Retour prévu à 14:00', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Text('${task['brand']} ${task['model']} • ${task['client_name']}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+            ],
+          ),
         ),
       ),
     );
@@ -325,16 +342,15 @@ class _DummyChartPainter extends CustomPainter {
       ..color = AppTheme.primary
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
-    
+
     final path = Path();
     path.moveTo(0, size.height * 0.8);
     path.quadraticBezierTo(size.width * 0.2, size.height * 0.5, size.width * 0.4, size.height * 0.7);
     path.quadraticBezierTo(size.width * 0.6, size.height * 0.9, size.width * 0.8, size.height * 0.3);
     path.quadraticBezierTo(size.width * 0.9, size.height * 0.1, size.width, size.height * 0.2);
-    
+
     canvas.drawPath(path, paint);
 
-    // Gradient fill below path
     final fillPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -342,12 +358,12 @@ class _DummyChartPainter extends CustomPainter {
         colors: [AppTheme.primary.withOpacity(0.2), AppTheme.primary.withOpacity(0.0)],
       ).createShader(Rect.fromLTRB(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
-    
+
     final fillPath = Path.from(path);
     fillPath.lineTo(size.width, size.height);
     fillPath.lineTo(0, size.height);
     fillPath.close();
-    
+
     canvas.drawPath(fillPath, fillPaint);
   }
 

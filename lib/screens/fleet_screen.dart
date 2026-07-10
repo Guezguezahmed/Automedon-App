@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
 import '../theme.dart';
+import 'car_detail_screen.dart';
 
 class FleetScreen extends ConsumerStatefulWidget {
   const FleetScreen({super.key});
@@ -124,8 +125,6 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
   }
 
   Widget _buildCarCard(Map<String, dynamic> car) {
-    // For price mock since it's not strictly in GET /mobile-cars response directly usually,
-    // though the user might have custom fields.
     final brand = car['brand'] ?? '';
     final model = car['model'] ?? '';
     final plate = car['plate_number'] ?? '';
@@ -158,9 +157,8 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
               Container(
                 height: 180,
                 color: Colors.grey.shade300,
-                // Replace with Image.network when API is real
-                child: imgUrl != null 
-                    ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.car_crash, size: 50, color: Colors.grey))
+                child: imgUrl != null
+                    ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.car_crash, size: 50, color: Colors.grey))
                     : const Icon(Icons.directions_car, size: 80, color: Colors.white),
               ),
               Positioned(
@@ -194,13 +192,6 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                         Text('$plate • $year', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                       ],
                     ),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('150 DT', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('/jour', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                      ],
-                    )
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -215,7 +206,13 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => CarDetailScreen(car: car),
+                      ),
+                    );
+                  },
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                     side: const BorderSide(color: AppTheme.primary),

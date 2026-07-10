@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
-
+import 'parc_screen.dart';
 class GestionFlotteScreen extends StatelessWidget {
   const GestionFlotteScreen({super.key});
 
@@ -18,11 +18,9 @@ class GestionFlotteScreen extends StatelessWidget {
         ),
         actions: [
           OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ParcsScreen()));
+            },
             child: const Text('Parc', style: TextStyle(color: AppTheme.textPrimary)),
           ),
           const SizedBox(width: 8),

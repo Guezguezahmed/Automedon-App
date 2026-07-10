@@ -71,12 +71,16 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _runSequence() async {
     await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
     await _logoCtrl.forward();                              // 0.2s → 0.9s  logo
     await Future.delayed(const Duration(milliseconds: 100));
+    if (!mounted) return;
     await _textCtrl.forward();                              // 1.0s → 1.5s  text
     await Future.delayed(const Duration(milliseconds: 100));
+    if (!mounted) return;
     await _tagCtrl.forward();                               // 1.6s → 2.0s  tagline
     await Future.delayed(const Duration(milliseconds: 900)); // hold 0.9s
+    if (!mounted) return;
     await _exitCtrl.forward();                              // fade out
     if (mounted) context.go('/');
   }

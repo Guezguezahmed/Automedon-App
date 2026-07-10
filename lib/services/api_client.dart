@@ -50,23 +50,61 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> getVision360({int days = 14}) async {
-    // MOCK VISION360
     await Future.delayed(const Duration(milliseconds: 500));
+
+    final now = DateTime.now();
+    final end = now.add(Duration(days: days));
+    final rentalEnd = now.add(const Duration(days: 1)); // "Retour Demain"
+
     return {
+      'window': {
+        'start': now.toIso8601String(),
+        'end': end.toIso8601String(),
+        'days': days,
+      },
+      'cars': [
+        {
+          'id': 12,
+          'brand': 'Hyundai',
+          'model': 'I20',
+          'plate_number': '247 TN 5433',
+          'status': 'loue',
+          'active_reservation': {
+            'client_name': 'mohamed',
+            'start_date': now.subtract(const Duration(days: 6)).toIso8601String(),
+            'end_date': rentalEnd.toIso8601String(),
+            'total_price': 900,
+            'advance_payment': 400,
+          },
+        },
+        {'id': 21, 'brand': 'Dacia', 'model': 'Sindero', 'plate_number': '237 TU 4530', 'status': 'disponible'},
+        {'id': 22, 'brand': 'Hyundai', 'model': 'I20', 'plate_number': '257 TU 3965', 'status': 'disponible'},
+        {'id': 23, 'brand': 'Renault', 'model': 'CLIO 5', 'plate_number': '247 TN 6228', 'status': 'disponible'},
+        {'id': 24, 'brand': 'Skoda', 'model': 'KUSHAQ', 'plate_number': '252 TN 9505', 'status': 'disponible'},
+        {'id': 25, 'brand': 'Suzuki', 'model': 'Ciaz', 'plate_number': '242 TN 7442', 'status': 'disponible'},
+        {'id': 26, 'brand': 'Volkswagen', 'model': 'Virtus', 'plate_number': '239 TN 5845', 'status': 'disponible'},
+        {'id': 27, 'brand': 'Volkswagen', 'model': 'Virtus', 'plate_number': '239 TN 5844', 'status': 'disponible'},
+      ],
+      'timeline': [
+        {
+          'id': 501,
+          'car_id': 12,
+          'start_date': now.subtract(const Duration(days: 6)).toIso8601String(),
+          'end_date': rentalEnd.toIso8601String(),
+          'client_name': 'mohamed',
+          'status': 'active',
+        },
+      ],
       'returningSoon': [
         {
           'car_id': 12,
-          'brand': 'Peugeot',
-          'model': '208',
-          'client_name': 'Mohamed Ali',
+          'brand': 'Hyundai',
+          'model': 'I20',
+          'plate_number': '247 TN 5433',
+          'client_name': 'mohamed',
+          'end_date': rentalEnd.toIso8601String(),
         },
-        {
-          'car_id': 14,
-          'brand': 'Renault',
-          'model': 'Clio',
-          'client_name': 'Sami Ahmed',
-        }
-      ]
+      ],
     };
   }
 

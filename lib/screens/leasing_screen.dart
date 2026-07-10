@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
-
+import 'partenaires_screen.dart';
 class LeasingScreen extends StatelessWidget {
   const LeasingScreen({super.key});
 
@@ -19,7 +19,12 @@ class LeasingScreen extends StatelessWidget {
         ),
         actions: [
           OutlinedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PartenairesScreen()),
+              );
+            },
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
