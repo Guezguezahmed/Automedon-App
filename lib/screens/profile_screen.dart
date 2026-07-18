@@ -85,8 +85,21 @@ class ProfileScreen extends ConsumerWidget {
 
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
-                  onPressed: () {
-                    ref.read(authProvider.notifier).logout();
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Déconnexion'),
+                        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Déconnexion')),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      ref.read(authProvider.notifier).logout();
+                    }
                   },
                   icon: const Icon(Icons.logout, color: AppTheme.error),
                   label: const Text('Déconnexion', style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.bold)),

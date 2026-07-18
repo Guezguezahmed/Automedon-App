@@ -16,6 +16,7 @@ class ApiClient {
   );
 
   String? token;
+  void Function()? onSessionExpired;
   final _storage = const FlutterSecureStorage();
 
   Map<String, String> _headers() => {
@@ -50,7 +51,10 @@ class ApiClient {
   Future<Map<String, dynamic>> _get(String path, [Map<String, String>? query]) async {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);
     final res = await http.get(uri, headers: _headers());
-    if (res.statusCode == 401) throw SessionExpiredException();
+    if (res.statusCode == 401) {
+      onSessionExpired?.call();
+      throw SessionExpiredException();
+    }
     if (res.statusCode != 200) {
       throw Exception(jsonDecode(res.body)['error'] ?? 'Request failed');
     }

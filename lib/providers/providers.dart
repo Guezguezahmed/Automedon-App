@@ -3,7 +3,12 @@ import '../services/api_client.dart';
 
 // API Client Provider
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient();
+  final client = ApiClient();
+  client.onSessionExpired = () {
+    ref.read(authProvider.notifier).logout();
+  };
+  return client;
+
 });
 
 // Auth State Provider
