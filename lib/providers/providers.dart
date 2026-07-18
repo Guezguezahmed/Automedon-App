@@ -52,10 +52,26 @@ final carsProvider = FutureProvider.family<Map<String, dynamic>, String?>((ref, 
   return ref.watch(apiClientProvider).getCars(status: status);
 });
 
-final reservationsProvider = FutureProvider.family<Map<String, dynamic>, String?>((ref, status) async {
-  return ref.watch(apiClientProvider).getReservations(status: status);
-});
+class ReservationsParams {
+  final String? status;
+  final int page;
 
+  const ReservationsParams({this.status, this.page = 1});
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReservationsParams && other.status == status && other.page == page;
+
+  @override
+  int get hashCode => Object.hash(status, page);
+}
+
+final reservationsProvider = FutureProvider.family<Map<String, dynamic>, ReservationsParams>((ref, params) async {
+  return ref.watch(apiClientProvider).getReservations(status: params.status, page: params.page);
+});
+final reservationDetailProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, id) async {
+  return ref.watch(apiClientProvider).getReservationDetail(id);
+});
 final notificationsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getNotifications();
 });

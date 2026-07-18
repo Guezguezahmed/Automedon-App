@@ -11,8 +11,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController(text: 'admin');
-  final _passwordController = TextEditingController(text: 'secret');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
@@ -34,10 +34,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // In a real app we might ask for slug, or hardcode it for now.
       // The API says "slug": "Cherif-Rent-Car"
       await ref.read(authProvider.notifier).login(
-            'Cherif-Rent-Car',
-            _emailController.text,
-            _passwordController.text,
-          );
+        'demo',
+        _emailController.text,
+        _passwordController.text,
+      );
       // Navigation is handled by GoRouter redirect automatically when authState changes
     } catch (e) {
       setState(() {
@@ -86,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16),
               ),
               const SizedBox(height: 40),
-              
+
               if (_errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
@@ -107,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               const Text('Mot de passe', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
@@ -127,7 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -136,16 +136,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               ElevatedButton(
                 onPressed: _isLoading ? null : _login,
-                child: _isLoading 
+                child: _isLoading
                     ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : const Text('Se connecter'),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               Row(
                 children: [
                   const Expanded(child: Divider()),
@@ -156,9 +156,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Expanded(child: Divider()),
                 ],
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               OutlinedButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.shield_outlined, color: AppTheme.textPrimary),
@@ -169,9 +169,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   side: const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
               ),
-              
+
               const SizedBox(height: 48),
-              
+
               Text(
                 '© 2024 Automedon. Tous droits réservés.',
                 textAlign: TextAlign.center,

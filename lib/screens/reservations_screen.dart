@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
+import 'package:go_router/go_router.dart';
 import '../theme.dart';
 
 class ReservationsScreen extends ConsumerStatefulWidget {
@@ -12,6 +13,9 @@ class ReservationsScreen extends ConsumerStatefulWidget {
 
 class _ReservationsScreenState extends ConsumerState<ReservationsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  // Independent page tracking per tab/status.
+  final Map<String, int> _pages = {'active': 1, 'confirmed': 1, 'completed': 1};
 
   @override
   void initState() {
@@ -66,22 +70,69 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> with Si
   }
 
   Widget _buildList(String status) {
-    final resAsync = ref.watch(reservationsProvider(status));
+    final page = _pages[status]!;
+    final resAsync = ref.watch(reservationsProvider(ReservationsParams(status: status, page: page)));
 
     return resAsync.when(
       data: (data) {
         final items = data['reservations'] as List? ?? [];
+        final total = data['total'] as int? ?? items.length;
+        final pageSize = data['pageSize'] as int? ?? 20;
+        final totalPages = (total / pageSize).ceil().clamp(1, 999);
+
         if (items.isEmpty) {
           return const Center(child: Text('Aucun contrat', style: TextStyle(color: AppTheme.textSecondary)));
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: items.length,
-          itemBuilder: (context, index) => _buildReservationCard(items[index]),
+
+        return Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return InkWell(
+                    onTap: () => context.push('/reservations/${item['id']}'),
+                    child: _buildReservationCard(item),
+                  );
+                },
+              ),
+            ),
+            if (totalPages > 1) _buildPaginationBar(status, page, totalPages),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Erreur: $e')),
+    );
+  }
+
+  Widget _buildPaginationBar(String status, int page, int totalPages) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            color: page > 1 ? AppTheme.primary : AppTheme.textSecondary.withOpacity(0.3),
+            onPressed: page > 1 ? () => setState(() => _pages[status] = page - 1) : null,
+          ),
+          Text(
+            'Page $page / $totalPages',
+            style: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            color: page < totalPages ? AppTheme.primary : AppTheme.textSecondary.withOpacity(0.3),
+            onPressed: page < totalPages ? () => setState(() => _pages[status] = page + 1) : null,
+          ),
+        ],
+      ),
     );
   }
 
@@ -94,7 +145,7 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> with Si
     final brand = car['brand'] ?? 'Auto';
     final model = car['model'] ?? '';
     final imgUrl = car['image_url'];
-    
+
     // Dates formatting mock
     final String startDate = "10 Jan 2024";
     final String endDate = "14 Jan 2024";

@@ -21,7 +21,7 @@ class ProfileScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _buildMenuItem(context, Icons.settings_outlined, 'Mon agence', 'AutoLocation Tunis', AppTheme.primary, null),
+                _buildMenuItem(context, Icons.settings_outlined, 'Mon agence', 'AutoLocation Tunis', AppTheme.primary, '/monagence'),
                 _buildMenuItem(context, Icons.description_outlined, 'Leasing', 'Contrats de leasing', Colors.blue, '/leasing'),
                 _buildMenuItem(context, Icons.directions_car_outlined, 'Gestion Flotte', 'Détails de la flotte', AppTheme.success, '/gestion_flotte'),
                 _buildMenuItem(context, Icons.star_border, 'Services', 'Services additionnels', Colors.pink, '/services'),

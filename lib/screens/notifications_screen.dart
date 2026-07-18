@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
+import 'package:go_router/go_router.dart';
 import '../theme.dart';
 
-class NotificationsScreen extends ConsumerWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  // Locally dismissed notification keys (per API spec §4.6: `key` is the
+  // stable unique id meant for local de-duplication / "mark as read").
+  final Set<String> _dismissedKeys = {};
+
+  @override
+  Widget build(BuildContext context) {
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
@@ -17,7 +27,7 @@ class NotificationsScreen extends ConsumerWidget {
         centerTitle: false,
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: () => _clearAll(notificationsAsync.value),
             child: const Text('Tout effacer', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
           ),
           const SizedBox(width: 8),
@@ -25,7 +35,11 @@ class NotificationsScreen extends ConsumerWidget {
       ),
       body: notificationsAsync.when(
         data: (data) {
-          final items = data['notifications'] as List;
+          final allItems = data['notifications'] as List;
+          final items = allItems
+              .where((item) => !_dismissedKeys.contains(item['key'] as String?))
+              .toList();
+
           if (items.isEmpty) {
             return const Center(child: Text('Aucune notification'));
           }
@@ -39,13 +53,13 @@ class NotificationsScreen extends ConsumerWidget {
                 padding: EdgeInsets.only(bottom: 12, left: 4),
                 child: Text('AUJOURD\'HUI', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
-              ...items.take(2).map((item) => _buildNotificationCard(item)),
+              ...items.take(2).map((item) => _buildNotificationCard(context, item)),
               const SizedBox(height: 16),
               const Padding(
                 padding: EdgeInsets.only(bottom: 12, left: 4),
                 child: Text('CETTE SEMAINE', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
-              ...items.skip(2).map((item) => _buildNotificationCard(item)),
+              ...items.skip(2).map((item) => _buildNotificationCard(context, item)),
             ],
           );
         },
@@ -55,8 +69,29 @@ class NotificationsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNotificationCard(Map<String, dynamic> item) {
+  void _clearAll(Map<String, dynamic>? data) {
+    if (data == null) return;
+    final allItems = data['notifications'] as List;
+    setState(() {
+      for (final item in allItems) {
+        final key = item['key'] as String?;
+        if (key != null) _dismissedKeys.add(key);
+      }
+    });
+  }
+
+  void _dismiss(String? key) {
+    if (key == null) return;
+    setState(() => _dismissedKeys.add(key));
+  }
+
+  Widget _buildNotificationCard(BuildContext context, Map<String, dynamic> item) {
     final severity = item['severity'] as String? ?? 'info';
+    final type = item['type'] as String?;
+    final key = item['key'] as String?;
+    final ref = item['ref'] as Map<String, dynamic>?;
+    final reservationId = (type == 'return_due') ? (ref?['reservation_id'] as int?) : null;
+
     Color iconColor;
     Color bgColor;
     IconData iconData;
@@ -83,7 +118,7 @@ class NotificationsScreen extends ConsumerWidget {
         iconData = Icons.notifications_none;
     }
 
-    return Card(
+    final card = Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -109,24 +144,35 @@ class NotificationsScreen extends ConsumerWidget {
                   Text(item['message'] ?? '', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                   const SizedBox(height: 4),
                   Text(
-                    _formatDate(item['date'] ?? ''), 
+                    _formatDate(item['date'] ?? ''),
                     style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.cancel_outlined, color: Color(0xFFD1D5DB), size: 20),
-              onPressed: () {}, // read-only app
-              constraints: const BoxConstraints(),
-              padding: EdgeInsets.zero,
-            ),
+            if (reservationId != null)
+              const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20)
+            else
+              IconButton(
+                icon: const Icon(Icons.cancel_outlined, color: Color(0xFFD1D5DB), size: 20),
+                onPressed: () => _dismiss(key),
+                constraints: const BoxConstraints(),
+                padding: EdgeInsets.zero,
+              ),
           ],
         ),
       ),
     );
+
+    if (reservationId == null) return card;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => context.push('/reservations/$reservationId'),
+      child: card,
+    );
   }
-  
+
   String _formatDate(String isoDate) {
     // Simple mock formatting
     return "Il y a quelques instants";

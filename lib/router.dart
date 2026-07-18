@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,19 +11,36 @@ import 'screens/gestion_flotte_screen.dart';
 import 'screens/services_screen.dart';
 import 'screens/historique_screen.dart';
 import 'screens/signalements_screen.dart';
+import 'screens/mon_agence_screen.dart';
+import 'screens/reservation_detail_screen.dart';
+
+/// Bridges Riverpod's authProvider (bool) to a ChangeNotifier that
+/// GoRouter can listen to via `refreshListenable`, without GoRouter
+/// itself being recreated on every auth change.
+class GoRouterRefreshNotifier extends ChangeNotifier {
+  GoRouterRefreshNotifier(Ref ref) {
+    ref.listen<bool>(authProvider, (previous, next) {
+      notifyListeners();
+    });
+  }
+}
+
+final _goRouterRefreshProvider = Provider<GoRouterRefreshNotifier>((ref) {
+  return GoRouterRefreshNotifier(ref);
+});
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final refreshNotifier = ref.watch(_goRouterRefreshProvider);
 
   return GoRouter(
-    // Always start at the splash screen
     initialLocation: '/splash',
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      final authState = ref.read(authProvider); // lu au moment du redirect, pas watché
       final path = state.uri.toString();
       final isSplash = path == '/splash';
       final isLogin = path == '/login';
 
-      // Don't intercept the splash screen — it handles its own navigation
       if (isSplash) return null;
 
       if (!authState && !isLogin) return '/login';
@@ -38,6 +56,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/monagence',
+        builder: (context, state) => const MonAgenceScreen(),
       ),
       GoRoute(
         path: '/',
@@ -62,6 +84,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/signalements',
         builder: (context, state) => const SignalementsScreen(),
+      ),
+      GoRoute(
+        path: '/reservations/:id',
+        builder: (context, state) => ReservationDetailScreen(
+          reservationId: int.parse(state.pathParameters['id']!),
+        ),
       ),
     ],
   );
