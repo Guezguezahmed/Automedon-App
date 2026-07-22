@@ -1,28 +1,41 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_text_styles.dart';
+import '../widgets/kit.dart';
 import 'agences_screen.dart';
+
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AppAmbientGlow(
+      child: Scaffold(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
       appBar: AppBar(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.pink.withOpacity(0.1), shape: BoxShape.circle),
-              child: const Icon(Icons.directions_car_outlined, color: Colors.pink, size: 20), // Closest to the icon in 193418
+            const AppIconCircle(
+              icon: Icons.directions_car_outlined,
+              color: Color(0xFFEC4899),
+              backgroundColor: Color(0x1AEC4899),
+              size: 40,
+              iconSize: 20,
             ),
-            const SizedBox(width: 12),
-            const Expanded(
+            const SizedBox(width: AppTheme.sp3),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Services', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
-                  Text('0 services enregistrés', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.normal)),
+                  Text('Services', style: AppTextStyles.displayLg(color: isDark ? Colors.white : AppTheme.ink900)),
+                  Text(
+                    '0 services enregistrés',
+                    style: AppTextStyles.bodyMd(color: isDark ? Colors.white60 : AppTheme.ink600),
+                  ),
                 ],
               ),
             ),
@@ -32,7 +45,10 @@ class ServicesScreen extends StatelessWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.sp4,
+              vertical: AppTheme.sp2,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -40,53 +56,61 @@ class ServicesScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const AgencesScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const AgencesScreen(),
+                      ),
                     );
                   },
                   style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.sp4,
+                      vertical: AppTheme.sp2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
                   ),
-                  child: const Text('Agences', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Agences',
+                    style: AppTextStyles.bodyLg(color: AppTheme.ink900),
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppTheme.sp2),
                 ElevatedButton.icon(
                   onPressed: () {},
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Nouveau'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.sp4,
+                      vertical: AppTheme.sp2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(
+                    'Nouveau',
+                    style: AppTextStyles.bodyLg(color: Colors.white),
+                  ),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.directions_car_outlined, size: 64, color: Color(0xFFD1D5DB)),
-                    const SizedBox(height: 16),
-                    const Text('Aucun service enregistré.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Commencez par ajouter votre premier service (transfert, mise à disposition...)',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.textSecondary),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 50)),
-                      icon: const Icon(Icons.add, size: 20),
-                      label: const Text('Nouveau Service', style: TextStyle(fontSize: 16)),
-                    )
-                  ],
-                ),
-              ),
+            child: AppEmptyState(
+              icon: Icons.directions_car_outlined,
+              title: 'Aucun service enregistré.',
+              description:
+                  'Commencez par ajouter votre premier service (transfert, mise à disposition...)',
+              actionLabel: 'Nouveau Service',
+              onAction: () {},
             ),
-          )
+          ),
         ],
       ),
+    ),
     );
   }
 }

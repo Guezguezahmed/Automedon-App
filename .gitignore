@@ -51,3 +51,9 @@ ios/.dart_tool/
 
 # Temporary files
 api_doc.txt
+
+# Environment / Secret files
+.env
+*.env
+.env.*
+

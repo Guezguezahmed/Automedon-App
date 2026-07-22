@@ -56,16 +56,15 @@ class CarDetailScreen extends StatelessWidget {
       statusText = 'Disponible';
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // automaticallyImplyLeading (true par défaut) affiche la flèche
-        // retour ET la connecte nativement à Navigator.pop() -- plus
-        // fiable qu'un IconButton fait main dans un Stack/Positioned.
-        iconTheme: const IconThemeData(color: AppTheme.textSecondary),
+        iconTheme: IconThemeData(color: isDark ? Colors.white : AppTheme.ink600),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16, top: 6),

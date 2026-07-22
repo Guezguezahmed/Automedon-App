@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/tenant.dart';
 import '../providers/providers.dart';
-import '../theme.dart'; // adapter le chemin vers votre AppTheme
+import '../theme.dart';
+import '../widgets/app_text_styles.dart';
+import '../widgets/kit.dart';
 
-/// Traduit le statut brut du Tenant ("active", "suspended", ...) en libellé
-/// affiché à l'utilisateur. Utilisé à la fois par le badge du header et
-/// par la carte "Informations" pour rester cohérent.
 String _statusLabel(String status) {
   switch (status.toLowerCase()) {
     case 'active':
@@ -19,57 +18,60 @@ String _statusLabel(String status) {
   }
 }
 
-/// Écran "Mon agence" — affiche les infos du Tenant courant
-/// (issu de GET /mobile-me via `meProvider`).
-/// Les compteurs (véhicules / contrats / clients) sont dérivés de
-/// `carsProvider` et `reservationsProvider` : ce ne sont pas des champs
-/// du modèle Tenant, mais des agrégats calculés côté app.
 class MonAgenceScreen extends ConsumerWidget {
   const MonAgenceScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final meAsync = ref.watch(meProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mon agence')),
-      body: meAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => _ErrorState(
-          message: err.toString(),
-          onRetry: () => ref.invalidate(meProvider),
+    return AppAmbientGlow(
+      child: Scaffold(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
+        appBar: AppBar(
+          backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
+          title: Text('Mon agence', style: AppTextStyles.displayLg(context: context)),
         ),
-        data: (data) {
-          final tenant = Tenant.fromJson(data['tenant'] as Map<String, dynamic>);
+        body: meAsync.when(
+          loading: () => Center(child: CircularProgressIndicator(color: isDark ? AppTheme.neonViolet : AppTheme.primary600)),
+          error: (err, _) => _ErrorState(
+            message: err.toString(),
+            onRetry: () => ref.invalidate(meProvider),
+          ),
+          data: (data) {
+            final tenant = Tenant.fromJson(data['tenant'] as Map<String, dynamic>);
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(meProvider);
-              ref.invalidate(carsProvider(null));
-              ref.invalidate(reservationsProvider(const ReservationsParams()));
-            },
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _AgencyHeader(tenant: tenant),
-                const SizedBox(height: 16),
-                const _StatsRow(),
-                const SizedBox(height: 16),
-                _InfoCard(tenant: tenant),
-                const SizedBox(height: 24),
-              ],
-            ),
-          );
-        },
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(meProvider);
+                ref.invalidate(carsProvider(null));
+                ref.invalidate(reservationsProvider(const ReservationsParams()));
+              },
+              child: ListView(
+                padding: EdgeInsets.zero,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  _AgencyHeader(tenant: tenant, isDark: isDark),
+                  const SizedBox(height: 16),
+                  _StatsRow(isDark: isDark),
+                  const SizedBox(height: 16),
+                  _InfoCard(tenant: tenant, isDark: isDark),
+                  const SizedBox(height: 120),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-/// Bandeau violet en haut : logo/initiales, nom, slug, badge de statut.
 class _AgencyHeader extends StatelessWidget {
   final Tenant tenant;
-  const _AgencyHeader({required this.tenant});
+  final bool isDark;
+  const _AgencyHeader({required this.tenant, required this.isDark});
 
   String get _initials {
     final parts = tenant.name.trim().split(RegExp(r'\s+'));
@@ -84,78 +86,77 @@ class _AgencyHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-      decoration: const BoxDecoration(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.sp8, horizontal: AppTheme.sp5),
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppTheme.primary, AppTheme.primaryDark],
+          colors: isDark
+              ? const [Color(0xFF1E1548), Color(0xFF110B2D)]
+              : const [Color(0xFF5B4FE0), Color(0xFF3B2DB8), Color(0xFF23187F)],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(AppTheme.radiusLg),
+          bottomRight: Radius.circular(AppTheme.radiusLg),
         ),
       ),
       child: Column(
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.15),
-              border: Border.all(color: Colors.white.withOpacity(0.35), width: 2),
+              color: Colors.white.withValues(alpha: 0.15),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.neonViolet.withValues(alpha: 0.4),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
               image: tenant.logoUrl != null
                   ? DecorationImage(
-                image: NetworkImage(tenant.logoUrl!),
-                fit: BoxFit.cover,
-              )
+                      image: NetworkImage(tenant.logoUrl!),
+                      fit: BoxFit.cover,
+                    )
                   : null,
             ),
             alignment: Alignment.center,
             child: tenant.logoUrl == null
                 ? Text(
-              _initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-              ),
-            )
+                    _initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
                 : null,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.sp3),
           Text(
             tenant.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTextStyles.displayLg(color: Colors.white),
           ),
           const SizedBox(height: 4),
-          Text(
-            tenant.slug,
-            style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13),
-          ),
-          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.circle,
-                  size: 8,
-                  color: _isActive ? AppTheme.success : AppTheme.error,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _statusLabel(tenant.status),
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ],
+            child: Text(
+              tenant.slug,
+              style: AppTextStyles.dataSm(color: Colors.white.withValues(alpha: 0.9)),
             ),
+          ),
+          const SizedBox(height: AppTheme.sp3),
+          AppGlassBadge(
+            label: _statusLabel(tenant.status),
+            dotColor: _isActive ? (isDark ? AppTheme.neonMint : AppTheme.success) : AppTheme.danger,
           ),
         ],
       ),
@@ -163,9 +164,9 @@ class _AgencyHeader extends StatelessWidget {
   }
 }
 
-/// Rangée de 3 compteurs (véhicules / contrats / clients).
 class _StatsRow extends ConsumerWidget {
-  const _StatsRow();
+  final bool isDark;
+  const _StatsRow({required this.isDark});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -189,7 +190,6 @@ class _StatsRow extends ConsumerWidget {
     final cars = carsAsync.value?['cars'] as List? ?? [];
     final reservations = reservationsAsync.value?['reservations'] as List? ?? [];
 
-    // Clients = nb de noms de clients distincts parmi les réservations.
     final distinctClients = reservations
         .map((r) => (r as Map<String, dynamic>)['client_name'] as String?)
         .whereType<String>()
@@ -200,18 +200,19 @@ class _StatsRow extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: _StatCard(value: cars.length, label: 'Véhicules'),
+            child: _StatCard(value: cars.length, label: 'Véhicules', isDark: isDark),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTheme.sp2),
           Expanded(
             child: _StatCard(
               value: (reservationsAsync.value?['total'] as int?) ?? reservations.length,
               label: 'Contrats',
+              isDark: isDark,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTheme.sp2),
           Expanded(
-            child: _StatCard(value: distinctClients.length, label: 'Clients'),
+            child: _StatCard(value: distinctClients.length, label: 'Clients', isDark: isDark),
           ),
         ],
       ),
@@ -232,8 +233,8 @@ class _StatsRowSkeleton extends StatelessWidget {
             child: Container(
               height: 64,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               ),
             ),
           ),
@@ -246,31 +247,25 @@ class _StatsRowSkeleton extends StatelessWidget {
 class _StatCard extends StatelessWidget {
   final int value;
   final String label;
-  const _StatCard({required this.value, required this.label});
+  final bool isDark;
+  const _StatCard({required this.value, required this.label, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.sp3),
+      hasGlow: isDark,
+      glowColor: isDark ? AppTheme.neonViolet : null,
       child: Column(
         children: [
           Text(
             '$value',
-            style: const TextStyle(
-              color: AppTheme.primary,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTextStyles.dataLg(color: isDark ? AppTheme.neonCyan : AppTheme.primary600),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+            style: AppTextStyles.caption(color: isDark ? Colors.white70 : AppTheme.ink600),
           ),
         ],
       ),
@@ -278,10 +273,10 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-/// Carte "Informations" listant les champs du Tenant.
 class _InfoCard extends StatelessWidget {
   final Tenant tenant;
-  const _InfoCard({required this.tenant});
+  final bool isDark;
+  const _InfoCard({required this.tenant, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -290,37 +285,38 @@ class _InfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8, left: 4),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8, left: 4),
             child: Text(
               'Informations',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(color: isDark ? Colors.white60 : AppTheme.ink600, fontSize: 13),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              borderRadius: BorderRadius.circular(12),
-            ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            hasGlow: isDark,
+            glowColor: isDark ? AppTheme.neonCyan : null,
             child: Column(
               children: [
                 _InfoRow(
                   icon: Icons.badge_outlined,
                   label: 'Identifiant (slug)',
                   value: tenant.slug,
+                  isDark: isDark,
                 ),
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE5E7EB)),
+                Divider(height: 1, thickness: 1, color: isDark ? Colors.white10 : const Color(0xFFE5E7EB)),
                 _InfoRow(
                   icon: Icons.storefront_outlined,
                   label: "Nom de l'agence",
                   value: tenant.name,
+                  isDark: isDark,
                 ),
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE5E7EB)),
+                Divider(height: 1, thickness: 1, color: isDark ? Colors.white10 : const Color(0xFFE5E7EB)),
                 _InfoRow(
                   icon: Icons.verified_user_outlined,
                   label: 'Statut',
                   value: _statusLabel(tenant.status),
+                  isDark: isDark,
                 ),
               ],
             ),
@@ -335,28 +331,37 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final bool isDark;
 
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final accent = isDark ? AppTheme.neonViolet : AppTheme.primary600;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppTheme.primary),
+          AppIconCircle(
+            icon: icon,
+            color: accent,
+            size: 36,
+            hasGlow: isDark,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                Text(label, style: TextStyle(color: isDark ? Colors.white60 : AppTheme.ink600, fontSize: 12)),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14)),
+                Text(value, style: TextStyle(color: isDark ? Colors.white : AppTheme.ink900, fontSize: 14, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -379,12 +384,12 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppTheme.error, size: 40),
+            const Icon(Icons.error_outline, color: AppTheme.danger, size: 40),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textSecondary),
+              style: AppTextStyles.bodyMd(context: context),
             ),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: const Text('Réessayer')),

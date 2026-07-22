@@ -11,12 +11,20 @@ class ReservationDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final detailAsync = ref.watch(reservationDetailProvider(reservationId));
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
       appBar: AppBar(
-        title: const Text('Détail du contrat'),
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
+        title: Text(
+          'Détail du contrat',
+          style: TextStyle(
+            color: isDark ? Colors.white : AppTheme.ink900,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: detailAsync.when(
         data: (data) {

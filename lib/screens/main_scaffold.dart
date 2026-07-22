@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'dashboard_screen.dart';
@@ -29,9 +30,11 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       extendBody: true, // body goes behind the floating bar
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: isDark ? const Color(0xFF0A071B) : AppTheme.surfaceApp,
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
@@ -39,39 +42,29 @@ class _MainScaffoldState extends State<MainScaffold> {
       bottomNavigationBar: SlidingNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: (i) => setState(() => _selectedIndex = i),
-        backgroundColor: Colors.white,
-        indicatorColor: AppTheme.primary,
+        backgroundColor: isDark
+            ? const Color(0xFF140F2D).withValues(alpha: 0.88)
+            : AppTheme.glassGill,
+        indicatorColor: isDark ? const Color(0xFF7C6FEA) : AppTheme.primary600,
         activeIconColor: Colors.white,
-        inactiveIconColor: const Color(0xFFB0B7C3),
+        inactiveIconColor: isDark ? Colors.white38 : AppTheme.ink400,
       ),
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  SLIDING NAV BAR
+//  SLIDING NAV BAR — Frosted Glass Control Deck
 // ═══════════════════════════════════════════════════════════════════
 
 /// A floating pill-shaped bottom navigation bar with a smooth sliding
-/// circular indicator. Colors are fully customizable via constructor params.
+/// circular indicator and glass elevation.
 class SlidingNavBar extends StatefulWidget {
-  /// Currently selected tab index (0–3).
   final int selectedIndex;
-
-  /// Callback fired when a tab is tapped.
   final ValueChanged<int> onItemTapped;
-
-  // ── Customisable colors ──────────────────────────────────────────
-  /// Background color of the pill container.
   final Color backgroundColor;
-
-  /// Background color of the sliding circular indicator.
   final Color indicatorColor;
-
-  /// Icon color when inside the active indicator.
   final Color activeIconColor;
-
-  /// Icon color for inactive tabs.
   final Color inactiveIconColor;
 
   const SlidingNavBar({
@@ -90,21 +83,16 @@ class SlidingNavBar extends StatefulWidget {
 
 class _SlidingNavBarState extends State<SlidingNavBar>
     with SingleTickerProviderStateMixin {
-  // ── Animation ───────────────────────────────────────────────────
   late AnimationController _ctrl;
   late Animation<double> _slideAnim;
-
-  /// Tracks the *previous* index so we can tween from old → new position.
   late int _previousIndex;
 
-  // ── Layout constants ────────────────────────────────────────────
-  static const double _barHeight     = 64.0;
-  static const double _indicatorSize = 46.0;
-  static const double _horizontalMargin = 24.0;
+  static const double _barHeight     = 66.0;
+  static const double _indicatorSize = 48.0;
+  static const double _horizontalMargin = 20.0;
   static const double _verticalMargin   = 16.0;
   static const int    _itemCount = 5;
 
-  // Icons — Home sits at index 2 (center slot)
   static const List<IconData> _icons = [
     Icons.directions_car_outlined,
     Icons.calendar_today_outlined,
@@ -123,9 +111,8 @@ class _SlidingNavBarState extends State<SlidingNavBar>
       duration: const Duration(milliseconds: 380),
     );
 
-    // Start fully at rest (the indicator is already at the right position).
     _slideAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _ctrl, curve: AppTheme.easeOutSoft),
     );
   }
 
@@ -133,7 +120,6 @@ class _SlidingNavBarState extends State<SlidingNavBar>
   void didUpdateWidget(SlidingNavBar old) {
     super.didUpdateWidget(old);
     if (old.selectedIndex != widget.selectedIndex) {
-      // Restart the tween from the old position to the new one.
       _previousIndex = old.selectedIndex;
       _ctrl.forward(from: 0.0);
     }
@@ -145,8 +131,6 @@ class _SlidingNavBarState extends State<SlidingNavBar>
     super.dispose();
   }
 
-  /// Computes the LEFT edge of the indicator circle for a given [index],
-  /// given the available [slotWidth].
   double _indicatorLeft(int index, double slotWidth) {
     final center = slotWidth * index + slotWidth / 2;
     return center - _indicatorSize / 2;
@@ -163,75 +147,84 @@ class _SlidingNavBarState extends State<SlidingNavBar>
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Total usable width inside the pill
             final barWidth  = constraints.maxWidth;
             final slotWidth = barWidth / _itemCount;
 
             return Container(
               height: _barHeight,
               decoration: BoxDecoration(
-                color: widget.backgroundColor,
-                borderRadius: BorderRadius.circular(_barHeight / 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                boxShadow: AppTheme.shadowLg,
               ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // ── Layer 1: sliding circular indicator ──────────
-                  AnimatedBuilder(
-                    animation: _slideAnim,
-                    builder: (_, __) {
-                      final fromLeft =
-                          _indicatorLeft(_previousIndex, slotWidth);
-                      final toLeft =
-                          _indicatorLeft(widget.selectedIndex, slotWidth);
-                      final currentLeft =
-                          fromLeft + (toLeft - fromLeft) * _slideAnim.value;
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: widget.backgroundColor,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.12)
+                            : Colors.white.withValues(alpha: 0.6),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // ── Layer 1: sliding circular indicator ──────────
+                        AnimatedBuilder(
+                          animation: _slideAnim,
+                          builder: (_, __) {
+                            final fromLeft =
+                                _indicatorLeft(_previousIndex, slotWidth);
+                            final toLeft =
+                                _indicatorLeft(widget.selectedIndex, slotWidth);
+                            final currentLeft =
+                                fromLeft + (toLeft - fromLeft) * _slideAnim.value;
 
-                      return Positioned(
-                        top: (_barHeight - _indicatorSize) / 2,
-                        left: currentLeft,
-                        child: Container(
-                          width: _indicatorSize,
-                          height: _indicatorSize,
-                          decoration: BoxDecoration(
-                            color: widget.indicatorColor,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    widget.indicatorColor.withValues(alpha: 0.35),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
+                            return Positioned(
+                              top: (_barHeight - _indicatorSize) / 2,
+                              left: currentLeft,
+                              child: Container(
+                                width: _indicatorSize,
+                                height: _indicatorSize,
+                                decoration: BoxDecoration(
+                                  color: widget.indicatorColor,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: widget.indicatorColor.withValues(alpha: 0.38),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
 
-                  // ── Layer 2: icon row ─────────────────────────────
-                  Row(
-                    children: List.generate(_itemCount, (i) {
-                      return _NavItem(
-                        index: i,
-                        icon: _icons[i],
-                        isSelected: widget.selectedIndex == i,
-                        activeIconColor: widget.activeIconColor,
-                        inactiveIconColor: widget.inactiveIconColor,
-                        animationController: _ctrl,
-                        onTap: () => widget.onItemTapped(i),
-                      );
-                    }),
+                        // ── Layer 2: icon row ─────────────────────────────
+                        Row(
+                          children: List.generate(_itemCount, (i) {
+                            return _NavItem(
+                              index: i,
+                              icon: _icons[i],
+                              isSelected: widget.selectedIndex == i,
+                              activeIconColor: widget.activeIconColor,
+                              inactiveIconColor: widget.inactiveIconColor,
+                              animationController: _ctrl,
+                              onTap: () => widget.onItemTapped(i),
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
             );
           },
@@ -241,24 +234,12 @@ class _SlidingNavBarState extends State<SlidingNavBar>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  INDIVIDUAL NAV ITEM
-// ═══════════════════════════════════════════════════════════════════
-
-/// A single icon slot inside the nav bar.
-///
-/// The icon itself never moves. Only its *color* cross-fades between
-/// [activeIconColor] and [inactiveIconColor] using the shared
-/// [animationController] from the parent.
 class _NavItem extends StatelessWidget {
   final int index;
   final IconData icon;
   final bool isSelected;
   final Color activeIconColor;
   final Color inactiveIconColor;
-
-  /// Shared controller from [SlidingNavBar] so the color fade is in sync
-  /// with the sliding indicator.
   final AnimationController animationController;
   final VoidCallback onTap;
 
@@ -276,7 +257,6 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: GestureDetector(
-        // Disable ripple for a cleaner premium look
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: SizedBox(
@@ -285,7 +265,6 @@ class _NavItem extends StatelessWidget {
             child: AnimatedBuilder(
               animation: animationController,
               builder: (_, __) {
-                // Instantly swap color once the indicator reaches this slot
                 final color = isSelected ? activeIconColor : inactiveIconColor;
                 return AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),

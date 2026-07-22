@@ -55,12 +55,21 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final vision360Async = ref.watch(vision360Provider);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
       appBar: AppBar(
-        title: const Text('Vision360', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
+        title: Text(
+          'Vision360',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            color: isDark ? Colors.white : AppTheme.ink900,
+          ),
+        ),
         centerTitle: false,
       ),
       body: vision360Async.when(

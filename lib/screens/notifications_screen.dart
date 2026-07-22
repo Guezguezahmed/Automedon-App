@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/providers.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/providers.dart';
 import '../theme.dart';
+import '../widgets/app_text_styles.dart';
+import '../widgets/kit.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -12,25 +14,29 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
-  // Locally dismissed notification keys (per API spec §4.6: `key` is the
-  // stable unique id meant for local de-duplication / "mark as read").
   final Set<String> _dismissedKeys = {};
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final notificationsAsync = ref.watch(notificationsProvider);
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
+    return AppAmbientGlow(
+      child: Scaffold(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
       appBar: AppBar(
-        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
+        title: Text('Notifications', style: AppTextStyles.displayLg(color: isDark ? Colors.white : AppTheme.ink900)),
         centerTitle: false,
         actions: [
           TextButton(
             onPressed: () => _clearAll(notificationsAsync.value),
-            child: const Text('Tout effacer', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
+            child: Text(
+              'Tout effacer',
+              style: AppTextStyles.bodyLg(color: isDark ? AppTheme.neonViolet : AppTheme.primary600),
+            ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTheme.sp2),
         ],
       ),
       body: notificationsAsync.when(
@@ -41,31 +47,47 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               .toList();
 
           if (items.isEmpty) {
-            return const Center(child: Text('Aucune notification'));
+            return Center(
+              child: Text(
+                'Aucune notification',
+                style: AppTextStyles.bodyLg(color: AppTheme.ink400),
+              ),
+            );
           }
 
-          // Mock categorization since the API doesn't group them directly.
-          // In a real app we would parse 'date' and group by today/this week.
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTheme.sp4),
             children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12, left: 4),
-                child: Text('AUJOURD\'HUI', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppTheme.sp3, left: AppTheme.sp1),
+                child: Text(
+                  'AUJOURD\'HUI',
+                  style: AppTextStyles.caption(color: AppTheme.ink600),
+                ),
               ),
               ...items.take(2).map((item) => _buildNotificationCard(context, item)),
-              const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12, left: 4),
-                child: Text('CETTE SEMAINE', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: AppTheme.sp4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppTheme.sp3, left: AppTheme.sp1),
+                child: Text(
+                  'CETTE SEMAINE',
+                  style: AppTextStyles.caption(color: AppTheme.ink600),
+                ),
               ),
               ...items.skip(2).map((item) => _buildNotificationCard(context, item)),
+              const SizedBox(height: 100),
             ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Erreur: $err')),
+        error: (err, stack) => Center(
+          child: Text(
+            'Erreur: $err',
+            style: AppTextStyles.bodyLg(color: AppTheme.danger),
+          ),
+        ),
       ),
+    ),
     );
   }
 
@@ -98,63 +120,68 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     switch (severity) {
       case 'danger':
-        iconColor = AppTheme.error;
-        bgColor = AppTheme.error.withOpacity(0.1);
+        iconColor = AppTheme.danger;
+        bgColor = AppTheme.danger.withValues(alpha: 0.1);
         iconData = Icons.close;
         break;
       case 'warning':
         iconColor = AppTheme.warning;
-        bgColor = AppTheme.warning.withOpacity(0.1);
+        bgColor = AppTheme.warning.withValues(alpha: 0.1);
         iconData = Icons.warning_amber_rounded;
         break;
       case 'success':
         iconColor = AppTheme.success;
-        bgColor = AppTheme.success.withOpacity(0.1);
+        bgColor = AppTheme.success.withValues(alpha: 0.1);
         iconData = Icons.check_circle_outline;
         break;
       default:
-        iconColor = AppTheme.primary;
-        bgColor = AppTheme.primary.withOpacity(0.1);
+        iconColor = AppTheme.primary600;
+        bgColor = AppTheme.primary600.withValues(alpha: 0.1);
         iconData = Icons.notifications_none;
     }
 
-    final card = Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    final card = Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.sp3),
+      child: AppCard(
+        padding: const EdgeInsets.all(AppTheme.sp4),
+        shadows: AppTheme.shadowSm,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: bgColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(iconData, color: iconColor, size: 20),
+            AppIconCircle(
+              icon: iconData,
+              color: iconColor,
+              backgroundColor: bgColor,
+              size: 40,
+              iconSize: 20,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppTheme.sp4),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(
+                    item['title'] ?? '',
+                    style: AppTextStyles.bodyLg(color: AppTheme.ink900),
+                  ),
                   const SizedBox(height: 4),
-                  Text(item['message'] ?? '', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                  Text(
+                    item['message'] ?? '',
+                    style: AppTextStyles.bodyMd(),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     _formatDate(item['date'] ?? ''),
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    style: AppTextStyles.caption(color: AppTheme.ink600),
                   ),
                 ],
               ),
             ),
             if (reservationId != null)
-              const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20)
+              const Icon(Icons.chevron_right, color: AppTheme.ink400, size: 20)
             else
               IconButton(
-                icon: const Icon(Icons.cancel_outlined, color: Color(0xFFD1D5DB), size: 20),
+                icon: const Icon(Icons.cancel_outlined, color: AppTheme.ink400, size: 20),
                 onPressed: () => _dismiss(key),
                 constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
@@ -167,14 +194,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     if (reservationId == null) return card;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       onTap: () => context.push('/reservations/$reservationId'),
       child: card,
     );
   }
 
   String _formatDate(String isoDate) {
-    // Simple mock formatting
     return "Il y a quelques instants";
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/providers.dart';
 import '../theme.dart';
+import '../widgets/app_text_styles.dart';
+import '../widgets/kit.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -31,14 +34,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      // In a real app we might ask for slug, or hardcode it for now.
-      // The API says "slug": "Cherif-Rent-Car"
       await ref.read(authProvider.notifier).login(
         'demo',
         _emailController.text,
         _passwordController.text,
       );
-      // Navigation is handled by GoRouter redirect automatically when authState changes
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -54,130 +54,169 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Icon(Icons.directions_car_outlined, color: Colors.white, size: 40),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Bon retour',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Connectez-vous à votre espace',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16),
-              ),
-              const SizedBox(height: 40),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-              const Text('Adresse e-mail', style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  hintText: 'admin@automedon.tn',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              const Text('Mot de passe', style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  hintText: '••••••••',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text('Mot de passe oublié ?', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              ElevatedButton(
-                onPressed: _isLoading ? null : _login,
-                child: _isLoading
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Se connecter'),
-              ),
-
-              const SizedBox(height: 32),
-
-              Row(
+    return AppAmbientGlow(
+      child: Scaffold(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('ou continuer avec', style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(height: 20),
+
+                  // ── Transparent Automedon Logo Display ──────────────
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.95)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                        border: Border.all(
+                          color: isDark ? AppTheme.neonViolet.withValues(alpha: 0.35) : const Color(0xFFE2E8F0),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (isDark ? AppTheme.neonViolet : AppTheme.primary600).withValues(alpha: isDark ? 0.35 : 0.15),
+                            blurRadius: 28,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(
+                        'assets/images/automedon_logo_transparent.png',
+                        height: 110,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/images/logo.png',
+                          height: 110,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
                   ),
-                  const Expanded(child: Divider()),
+
+                  const SizedBox(height: 32),
+
+                  Text(
+                    'Bon retour',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.displayLg(color: isDark ? Colors.white : AppTheme.ink900),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Connectez-vous à votre espace fleet',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.bodyMd(color: isDark ? Colors.white60 : AppTheme.ink600),
+                  ),
+                  const SizedBox(height: 36),
+
+                  if (_errorMessage != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.danger.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        border: Border.all(color: AppTheme.danger.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: GoogleFonts.inter(color: AppTheme.danger, fontWeight: FontWeight.w600, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                  Text(
+                    'Adresse e-mail',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : AppTheme.ink900,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _emailController,
+                    style: TextStyle(color: isDark ? Colors.white : AppTheme.ink900),
+                    decoration: InputDecoration(
+                      hintText: 'admin@automedon.tn',
+                      hintStyle: TextStyle(color: isDark ? Colors.white38 : AppTheme.ink400),
+                      prefixIcon: Icon(Icons.person_outline, color: isDark ? AppTheme.neonViolet : AppTheme.primary600),
+                      fillColor: isDark ? AppTheme.darkSurface : Colors.white,
+                      filled: true,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        borderSide: BorderSide(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        borderSide: BorderSide(color: isDark ? AppTheme.neonViolet : AppTheme.primary600, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Text(
+                    'Mot de passe',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : AppTheme.ink900,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    style: TextStyle(color: isDark ? Colors.white : AppTheme.ink900),
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      hintStyle: TextStyle(color: isDark ? Colors.white38 : AppTheme.ink400),
+                      prefixIcon: Icon(Icons.lock_outline, color: isDark ? AppTheme.neonViolet : AppTheme.primary600),
+                      fillColor: isDark ? AppTheme.darkSurface : Colors.white,
+                      filled: true,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        borderSide: BorderSide(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        borderSide: BorderSide(color: isDark ? AppTheme.neonViolet : AppTheme.primary600, width: 1.5),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: isDark ? Colors.white54 : AppTheme.ink400,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  AppPrimaryButton(
+                    label: 'Se connecter',
+                    onPressed: _login,
+                    isLoading: _isLoading,
+                    icon: Icons.login,
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
-
-              const SizedBox(height: 32),
-
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.shield_outlined, color: AppTheme.textPrimary),
-                label: const Text('SSO Entreprise', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  side: const BorderSide(color: Color(0xFFE5E7EB)),
-                ),
-              ),
-
-              const SizedBox(height: 48),
-
-              Text(
-                '© 2024 Automedon. Tous droits réservés.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
-              ),
-            ],
+            ),
           ),
         ),
       ),

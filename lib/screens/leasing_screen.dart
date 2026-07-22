@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import '../widgets/app_text_styles.dart';
+import '../widgets/kit.dart';
 import 'partenaires_screen.dart';
+
 class LeasingScreen extends StatelessWidget {
   const LeasingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AppAmbientGlow(
+      child: Scaffold(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
       appBar: AppBar(
-        title: const Column(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text('FINANCE', style: TextStyle(color: AppTheme.success, fontSize: 10, fontWeight: FontWeight.bold)),
-            Text('Leasing', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
-            Text('Gérez vos contrats de leasing', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+            Text('FINANCE', style: AppTextStyles.caption(color: isDark ? AppTheme.neonMint : AppTheme.success).copyWith(fontWeight: FontWeight.bold)),
+            Text('Leasing', style: AppTextStyles.displayLg(color: isDark ? Colors.white : AppTheme.ink900)),
+            Text('Gérez vos contrats de leasing', style: AppTextStyles.bodyMd(color: isDark ? Colors.white60 : AppTheme.ink600)),
           ],
         ),
         actions: [
@@ -26,97 +34,78 @@ class LeasingScreen extends StatelessWidget {
               );
             },
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.sp3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
             ),
-            child: const Text('Partenaire', style: TextStyle(color: AppTheme.textPrimary)),
+            child: Text('Partenaire', style: AppTextStyles.bodyLg(color: AppTheme.ink900)),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTheme.sp2),
           ElevatedButton.icon(
             onPressed: () {},
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF111827),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              backgroundColor: AppTheme.ink900,
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.sp3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
             ),
             icon: const Icon(Icons.add, size: 16),
-            label: const Text('Nouveau'),
+            label: Text('Nouveau', style: AppTextStyles.bodyLg(color: Colors.white)),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppTheme.sp4),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.sp4),
         child: Column(
           children: [
             Row(
               children: [
                 Expanded(child: _buildStatCard('CONTRATS', '0', 'voitures')),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppTheme.sp3),
                 Expanded(child: _buildStatCard('FINANCÉ', '0,000', 'DT')),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.sp3),
             Row(
               children: [
                 Expanded(child: _buildStatCard('PAYÉ', '0,000', 'DT')),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppTheme.sp3),
                 Expanded(child: _buildStatCard('RESTANT', '0', 'échéances')),
               ],
             ),
-            const SizedBox(height: 24),
-            Container(
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 24),
-              child: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.success.withOpacity(0.3), width: 4),
-                ),
-              ),
+            const SizedBox(height: AppTheme.sp8),
+            AppEmptyState(
+              icon: Icons.description_outlined,
+              title: 'Aucun contrat leasing',
+              description: 'Vous n\'avez pas encore ajouté de contrat de leasing à votre flotte.',
+              actionLabel: 'Nouveau Contrat',
+              onAction: () {},
             ),
-            const SizedBox(height: 60),
-            const Icon(Icons.description_outlined, size: 48, color: AppTheme.textSecondary),
-            const SizedBox(height: 16),
-            const Text('Aucun contrat leasing', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 8),
-            const Text(
-              'Vous n\'avez pas encore ajouté de contrat de leasing à votre flotte.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textSecondary),
-            )
           ],
         ),
       ),
+    ),
     );
   }
 
   Widget _buildStatCard(String title, String value, String unit) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                const SizedBox(width: 4),
-                Text(unit, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-              ],
-            )
-          ],
-        ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppTheme.sp4),
+      shadows: AppTheme.shadowSm,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTextStyles.caption(color: AppTheme.ink600)),
+          const SizedBox(height: AppTheme.sp2),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(value, style: AppTextStyles.dataLg(color: AppTheme.ink900)),
+              const SizedBox(width: 4),
+              Text(unit, style: AppTextStyles.caption(color: AppTheme.ink600)),
+            ],
+          )
+        ],
       ),
     );
   }

@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
-
-// ---------------------------------------------------------------------------
-// TODO(backend): MOBILE_API.md ne prévoit aucun endpoint pour les
-// partenaires de leasing (module purement back-office sur le web). Cet
-// écran utilise donc des données MOCKÉES en lecture seule, pour valider
-// le design. S'il doit vraiment apparaître dans l'app mobile, il faudra
-// définir avec le backend owner un endpoint du type :
-//   GET /mobile-leasing-partners   -> liste des partenaires
-// ---------------------------------------------------------------------------
+import '../widgets/app_text_styles.dart';
+import '../widgets/kit.dart';
 
 class LeasingPartner {
   final String name;
@@ -38,28 +31,32 @@ class PartenairesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AppAmbientGlow(
+      child: Scaffold(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
       appBar: AppBar(
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.handshake_outlined, color: AppTheme.primary, size: 20),
+            const AppIconCircle(
+              icon: Icons.handshake_outlined,
+              color: AppTheme.info,
+              backgroundColor: Color(0x1A4B9EF0),
+              size: 40,
+              iconSize: 20,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppTheme.sp3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Partenaires', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+                  Text('Partenaires Leasing', style: AppTextStyles.displayLg(color: isDark ? Colors.white : AppTheme.ink900)),
                   Text(
-                    '${_mockPartners.length} actif(s)',
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.normal),
+                    '${_mockPartners.length} société de leasing',
+                    style: AppTextStyles.bodyMd(color: isDark ? Colors.white60 : AppTheme.ink600),
                   ),
                 ],
               ),
@@ -70,110 +67,80 @@ class PartenairesScreen extends StatelessWidget {
       body: _mockPartners.isEmpty
           ? _buildEmpty()
           : ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        itemCount: _mockPartners.length,
-        itemBuilder: (context, i) => _PartnerCard(partner: _mockPartners[i]),
+              padding: const EdgeInsets.fromLTRB(AppTheme.sp4, AppTheme.sp2, AppTheme.sp4, 120),
+              itemCount: _mockPartners.length,
+              itemBuilder: (context, i) => _PartnerCard(partner: _mockPartners[i]),
+            ),
       ),
     );
   }
 
   Widget _buildEmpty() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.account_balance_outlined, color: AppTheme.textSecondary, size: 26),
-            ),
-            const SizedBox(height: 16),
-            const Text('Aucun partenaire', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 6),
-            const Text(
-              'Les banques et sociétés de leasing apparaîtront ici.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
+    return AppEmptyState(
+      icon: Icons.account_balance_outlined,
+      title: 'Aucun partenaire',
+      description: 'Les banques et sociétés de leasing apparaîtront ici.',
     );
   }
 }
 
 class _PartnerCard extends StatelessWidget {
   final LeasingPartner partner;
-  final VoidCallback? onDelete;
 
-  const _PartnerCard({required this.partner, this.onDelete});
+  const _PartnerCard({required this.partner});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  partner.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, height: 1.35),
-                ),
-              ),
-              const SizedBox(width: 10),
-              // Montant financé/dû pour ce partenaire -- lecture seule ici
-              // (champ éditable sur le web, l'API mobile ne le permet pas).
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${partner.amount.toStringAsFixed(3)} DT',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // TODO(backend): suppression indisponible -- l'API mobile est
-              // en lecture seule (MOBILE_API.md). Le bouton reste visible
-              // pour matcher le design web, mais désactivé + explique
-              // pourquoi au tap plutôt que de disparaître silencieusement.
-              GestureDetector(
-                onTap: onDelete ?? () => _showReadOnlyMessage(context),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.error.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.sp3),
+      child: AppCard(
+        padding: const EdgeInsets.all(AppTheme.sp4),
+        shadows: AppTheme.shadowSm,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    partner.name,
+                    style: AppTextStyles.displayMd(),
                   ),
-                  child: const Icon(Icons.delete_outline, color: AppTheme.error, size: 20),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '${partner.contractsCount} contrat(s) · ${partner.carsCount} voiture(s)',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-          ),
-        ],
+                const SizedBox(width: AppTheme.sp2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.sp3, vertical: AppTheme.sp2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceApp,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  ),
+                  child: Text(
+                    '${partner.amount.toStringAsFixed(3)} DT',
+                    style: AppTextStyles.dataSm(color: AppTheme.ink900),
+                  ),
+                ),
+                const SizedBox(width: AppTheme.sp2),
+                GestureDetector(
+                  onTap: () => _showReadOnlyMessage(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(AppTheme.sp2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.danger.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                    ),
+                    child: const Icon(Icons.delete_outline, color: AppTheme.danger, size: 20),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.sp2),
+            Text(
+              '${partner.contractsCount} contrat(s) · ${partner.carsCount} voiture(s)',
+              style: AppTextStyles.bodyMd(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -182,13 +149,17 @@ class _PartnerCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Action indisponible'),
-        content: const Text(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
+        title: Text('Action indisponible', style: AppTextStyles.displayMd()),
+        content: Text(
           'La suppression de partenaires n\'est pas encore disponible depuis l\'application mobile.',
+          style: AppTextStyles.bodyMd(),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('OK', style: AppTextStyles.bodyLg(color: AppTheme.primary600)),
+          ),
         ],
       ),
     );

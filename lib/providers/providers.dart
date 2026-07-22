@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_client.dart';
 
@@ -80,3 +81,35 @@ final reservationDetailProvider = FutureProvider.family<Map<String, dynamic>, in
 final notificationsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getNotifications();
 });
+
+// ── Local UI state (no API backing) ─────────────────────────────────────────
+/// Whether the user has enabled push notifications (persists for the session).
+class NotificationsEnabledNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+  void toggle(bool value) => state = value;
+}
+final notificationsEnabledProvider =
+    NotifierProvider<NotificationsEnabledNotifier, bool>(
+        NotificationsEnabledNotifier.new);
+
+/// Currently selected UI language: 'FR' or 'AR'.
+class SelectedLanguageNotifier extends Notifier<String> {
+  @override
+  String build() => 'FR';
+  void select(String lang) => state = lang;
+}
+final selectedLanguageProvider =
+    NotifierProvider<SelectedLanguageNotifier, String>(
+        SelectedLanguageNotifier.new);
+
+/// Theme Mode state: ThemeMode.dark (default) or ThemeMode.light.
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() => ThemeMode.dark;
+  void toggle(bool isDark) => state = isDark ? ThemeMode.dark : ThemeMode.light;
+  void setThemeMode(ThemeMode mode) => state = mode;
+}
+final themeModeProvider =
+    NotifierProvider<ThemeModeNotifier, ThemeMode>(
+        ThemeModeNotifier.new);
