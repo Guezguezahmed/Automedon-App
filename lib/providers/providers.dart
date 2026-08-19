@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_client.dart';
+import '../services/push_notification_service.dart';
 
 // API Client Provider
 final apiClientProvider = Provider<ApiClient>((ref) {
@@ -12,6 +13,11 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 });
 
+// Push Notification Service Provider
+final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {
+  return PushNotificationService();
+});
+
 // Auth State Provider
 class AuthNotifier extends Notifier<bool> {
   @override
@@ -19,7 +25,7 @@ class AuthNotifier extends Notifier<bool> {
     _init();
     return false;
   }
-  
+
   Future<void> _init() async {
     final client = ref.read(apiClientProvider);
     await client.init();
@@ -32,12 +38,42 @@ class AuthNotifier extends Notifier<bool> {
     final client = ref.read(apiClientProvider);
     await client.login(slug, username, password);
     state = true;
+    await _registerPushToken();
   }
 
   Future<void> logout() async {
+    await _unregisterPushToken();
     final client = ref.read(apiClientProvider);
     await client.logout();
     state = false;
+  }
+
+  Future<void> _registerPushToken() async {
+    try {
+      final pushService = ref.read(pushNotificationServiceProvider);
+      final granted = await pushService.requestPermission();
+      if (!granted) return;
+      final fcmToken = await pushService.getToken();
+      if (fcmToken == null) return;
+      final client = ref.read(apiClientProvider);
+      await client.registerPush(fcmToken);
+      print('Push token registered successfully');
+    } catch (e) {
+      print('Push token registration failed: $e');
+    }
+  }
+
+  Future<void> _unregisterPushToken() async {
+    try {
+      final pushService = ref.read(pushNotificationServiceProvider);
+      final fcmToken = await pushService.getToken();
+      if (fcmToken == null) return;
+      final client = ref.read(apiClientProvider);
+      await client.unregisterPush(fcmToken);
+      print('Push token unregistered successfully');
+    } catch (e) {
+      print('Push token unregistration failed: $e');
+    }
   }
 }
 
@@ -90,8 +126,8 @@ class NotificationsEnabledNotifier extends Notifier<bool> {
   void toggle(bool value) => state = value;
 }
 final notificationsEnabledProvider =
-    NotifierProvider<NotificationsEnabledNotifier, bool>(
-        NotificationsEnabledNotifier.new);
+NotifierProvider<NotificationsEnabledNotifier, bool>(
+    NotificationsEnabledNotifier.new);
 
 /// Currently selected UI language: 'FR' or 'AR'.
 class SelectedLanguageNotifier extends Notifier<String> {
@@ -100,8 +136,8 @@ class SelectedLanguageNotifier extends Notifier<String> {
   void select(String lang) => state = lang;
 }
 final selectedLanguageProvider =
-    NotifierProvider<SelectedLanguageNotifier, String>(
-        SelectedLanguageNotifier.new);
+NotifierProvider<SelectedLanguageNotifier, String>(
+    SelectedLanguageNotifier.new);
 
 /// Theme Mode state: ThemeMode.dark (default) or ThemeMode.light.
 class ThemeModeNotifier extends Notifier<ThemeMode> {
@@ -111,5 +147,5 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   void setThemeMode(ThemeMode mode) => state = mode;
 }
 final themeModeProvider =
-    NotifierProvider<ThemeModeNotifier, ThemeMode>(
-        ThemeModeNotifier.new);
+NotifierProvider<ThemeModeNotifier, ThemeMode>(
+    ThemeModeNotifier.new);

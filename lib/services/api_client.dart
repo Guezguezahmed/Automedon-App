@@ -61,6 +61,48 @@ class ApiClient {
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl$path'),
+      headers: _headers(),
+      body: jsonEncode(body),
+    );
+    print('POST $path -> ${res.statusCode}: ${res.body}');
+    if (res.statusCode == 401) {
+      onSessionExpired?.call();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode != 200) {
+      throw Exception(jsonDecode(res.body)['error'] ?? 'Request failed');
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> _delete(String path, Map<String, dynamic> body) async {
+    final res = await http.delete(
+      Uri.parse('$baseUrl$path'),
+      headers: _headers(),
+      body: jsonEncode(body),
+    );
+    if (res.statusCode == 401) {
+      onSessionExpired?.call();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode != 200) {
+      throw Exception(jsonDecode(res.body)['error'] ?? 'Request failed');
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> registerPush(String pushToken) => _post('/mobile-notifications', {
+    'push_token': pushToken,
+    'platform': 'android',
+    'provider': 'fcm',
+  });
+
+  Future<Map<String, dynamic>> unregisterPush(String pushToken) =>
+      _delete('/mobile-notifications', {'push_token': pushToken});
+
   Future<Map<String, dynamic>> getMe() => _get('/mobile-me');
 
   Future<Map<String, dynamic>> getVision360({int days = 14}) =>

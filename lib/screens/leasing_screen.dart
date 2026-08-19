@@ -37,7 +37,7 @@ class LeasingScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.sp3),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
             ),
-            child: Text('Partenaire', style: AppTextStyles.bodyLg(color: AppTheme.ink900)),
+            child: Text('Partenaire', style: AppTextStyles.bodyLg(color: isDark ? Colors.white : AppTheme.ink900)),
           ),
           const SizedBox(width: AppTheme.sp2),
           ElevatedButton.icon(
@@ -59,17 +59,17 @@ class LeasingScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: _buildStatCard('CONTRATS', '0', 'voitures')),
+                Expanded(child: _buildStatCard('CONTRATS', '0', 'voitures', isDark)),
                 const SizedBox(width: AppTheme.sp3),
-                Expanded(child: _buildStatCard('FINANCÉ', '0,000', 'DT')),
+                Expanded(child: _buildStatCard('FINANCÉ', '0,000', 'DT', isDark)),
               ],
             ),
             const SizedBox(height: AppTheme.sp3),
             Row(
               children: [
-                Expanded(child: _buildStatCard('PAYÉ', '0,000', 'DT')),
+                Expanded(child: _buildStatCard('PAYÉ', '0,000', 'DT', isDark)),
                 const SizedBox(width: AppTheme.sp3),
-                Expanded(child: _buildStatCard('RESTANT', '0', 'échéances')),
+                Expanded(child: _buildStatCard('RESTANT', '0', 'échéances', isDark)),
               ],
             ),
             const SizedBox(height: AppTheme.sp8),
@@ -87,22 +87,22 @@ class LeasingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, String unit) {
+  Widget _buildStatCard(String title, String value, String unit, bool isDark) {
     return AppCard(
       padding: const EdgeInsets.all(AppTheme.sp4),
       shadows: AppTheme.shadowSm,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.caption(color: AppTheme.ink600)),
+          Text(title, style: AppTextStyles.caption(color: isDark ? Colors.white60 : AppTheme.ink600)),
           const SizedBox(height: AppTheme.sp2),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(value, style: AppTextStyles.dataLg(color: AppTheme.ink900)),
+              Text(value, style: AppTextStyles.dataLg(color: isDark ? Colors.white : AppTheme.ink900)),
               const SizedBox(width: 4),
-              Text(unit, style: AppTextStyles.caption(color: AppTheme.ink600)),
+              Text(unit, style: AppTextStyles.caption(color: isDark ? Colors.white60 : AppTheme.ink600)),
             ],
           )
         ],

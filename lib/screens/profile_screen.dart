@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/providers.dart';
+import '../theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Helpers
@@ -52,10 +53,15 @@ class _DarkTokens {
     Color(0xFF2E1A72),
     Color(0xFF180E43),
   ];
+
+  static const List<Color> heroGradientLight = [
+    AppTheme.primary600,
+    AppTheme.primary400,
+  ];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  ProfileScreen — Dark Glass Telemetry Deck
+//  ProfileScreen — Dark Glass Telemetry Deck (dark + light aware)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -72,14 +78,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final meAsync = ref.watch(meProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final bgColor = isDark ? _DarkTokens.bgDark : AppTheme.surfaceApp;
+    final cardColor = isDark ? _DarkTokens.cardDark : AppTheme.surface0;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
 
     return Scaffold(
-      backgroundColor: _DarkTokens.bgDark,
+      backgroundColor: bgColor,
       body: meAsync.when(
-        loading: () => const _ProfileSkeletonDark(),
+        loading: () => _ProfileSkeletonDark(isDark: isDark),
         error: (err, _) => _ProfileErrorDark(
           message: err.toString(),
           onRetry: () => ref.invalidate(meProvider),
+          isDark: isDark,
         ),
         data: (data) {
           final user = data['user'] as Map<String, dynamic>;
@@ -94,41 +108,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
           return Stack(
             children: [
-              // Ambient gradient mesh background orbs
-              Positioned(
-                top: -80,
-                right: -40,
-                child: Container(
-                  width: 320,
-                  height: 320,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        _DarkTokens.neonViolet.withValues(alpha: 0.25),
-                        Colors.transparent,
-                      ],
+              // Ambient gradient mesh background orbs (dark mode only)
+              if (isDark) ...[
+                Positioned(
+                  top: -80,
+                  right: -40,
+                  child: Container(
+                    width: 320,
+                    height: 320,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          _DarkTokens.neonViolet.withValues(alpha: 0.25),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: 120,
-                left: -60,
-                child: Container(
-                  width: 280,
-                  height: 280,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        _DarkTokens.neonBlue.withValues(alpha: 0.20),
-                        Colors.transparent,
-                      ],
+                Positioned(
+                  bottom: 120,
+                  left: -60,
+                  child: Container(
+                    width: 280,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          _DarkTokens.neonBlue.withValues(alpha: 0.20),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
 
               // Main Scroll Content
               SafeArea(
@@ -139,7 +155,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                        child: _buildTopHeader(username, role, logoUrl),
+                        child: _buildTopHeader(username, role, logoUrl, isDark, primaryText, secondaryText),
                       ),
                     ),
 
@@ -153,7 +169,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
                             height: 1.15,
-                            color: Colors.white,
+                            color: primaryText,
                           ),
                         ),
                       ),
@@ -178,13 +194,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? Colors.white
-                                      : _DarkTokens.cardDark.withValues(alpha: 0.8),
+                                      ? (isDark ? Colors.white : AppTheme.primary600)
+                                      : cardColor.withValues(alpha: isDark ? 0.8 : 1.0),
                                   borderRadius: BorderRadius.circular(24),
                                   border: Border.all(
                                     color: isSelected
-                                        ? Colors.white
-                                        : Colors.white.withValues(alpha: 0.1),
+                                        ? (isDark ? Colors.white : AppTheme.primary600)
+                                        : borderColor,
                                   ),
                                 ),
                                 child: Center(
@@ -193,7 +209,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     style: GoogleFonts.inter(
                                       fontSize: 13,
                                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                      color: isSelected ? _DarkTokens.bgDark : Colors.white70,
+                                      color: isSelected
+                                          ? (isDark ? _DarkTokens.bgDark : Colors.white)
+                                          : secondaryText,
                                     ),
                                   ),
                                 ),
@@ -208,7 +226,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        child: _buildHeroAgencyCard(tenantName, tenantSlug, status),
+                        child: _buildHeroAgencyCard(tenantName, tenantSlug, status, isDark),
                       ),
                     ),
 
@@ -222,7 +240,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             // Left Bento: Weekly Productivity Chart
                             Expanded(
                               flex: 6,
-                              child: _buildWeeklyProductivityCard(),
+                              child: _buildWeeklyProductivityCard(isDark, cardColor, borderColor, primaryText, secondaryText),
                             ),
                             const SizedBox(width: 12),
                             // Right Bento: Agency Status & Upgrade Card
@@ -244,7 +262,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           style: GoogleFonts.outfit(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: primaryText,
                           ),
                         ),
                       ),
@@ -262,6 +280,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             subtitle: tenantName,
                             color: _DarkTokens.neonViolet,
                             route: '/monagence',
+                            isDark: isDark,
+                            cardColor: cardColor,
+                            borderColor: borderColor,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
                           ),
                           const SizedBox(height: 10),
                           _buildDarkMenuItem(
@@ -271,6 +294,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             subtitle: 'Contrats & échéances',
                             color: _DarkTokens.neonBlue,
                             route: '/leasing',
+                            isDark: isDark,
+                            cardColor: cardColor,
+                            borderColor: borderColor,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
                           ),
                           const SizedBox(height: 10),
                           _buildDarkMenuItem(
@@ -280,6 +308,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             subtitle: 'Détails du parc',
                             color: _DarkTokens.neonMint,
                             route: '/gestion_flotte',
+                            isDark: isDark,
+                            cardColor: cardColor,
+                            borderColor: borderColor,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
                           ),
                           const SizedBox(height: 10),
                           _buildDarkMenuItem(
@@ -289,6 +322,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             subtitle: 'Services additionnels',
                             color: _DarkTokens.neonPink,
                             route: '/services',
+                            isDark: isDark,
+                            cardColor: cardColor,
+                            borderColor: borderColor,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
                           ),
                           const SizedBox(height: 10),
                           _buildDarkMenuItem(
@@ -298,6 +336,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             subtitle: 'Journal d\'activité',
                             color: const Color(0xFFA855F7),
                             route: '/historique',
+                            isDark: isDark,
+                            cardColor: cardColor,
+                            borderColor: borderColor,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
                           ),
                           const SizedBox(height: 10),
                           _buildDarkMenuItem(
@@ -307,6 +350,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             subtitle: 'Liste noire clients',
                             color: const Color(0xFFF43F5E),
                             route: '/signalements',
+                            isDark: isDark,
+                            cardColor: cardColor,
+                            borderColor: borderColor,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
                           ),
                           const SizedBox(height: 16),
 
@@ -346,7 +394,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   // Top header: avatar + greeting + actions
-  Widget _buildTopHeader(String username, String role, String? logoUrl) {
+  Widget _buildTopHeader(
+      String username,
+      String role,
+      String? logoUrl,
+      bool isDark,
+      Color primaryText,
+      Color secondaryText,
+      ) {
     final initials = username.trim().isNotEmpty
         ? username.trim().substring(0, 1).toUpperCase()
         : 'U';
@@ -359,7 +414,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: _DarkTokens.neonViolet.withValues(alpha: 0.3),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.3) : AppTheme.primary600.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
             image: logoUrl != null
                 ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover)
                 : null,
@@ -367,13 +425,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           alignment: Alignment.center,
           child: logoUrl == null
               ? Text(
-                  initials,
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                )
+            initials,
+            style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          )
               : null,
         ),
         const SizedBox(width: 12),
@@ -384,7 +442,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(
                 username,
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: primaryText,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),
@@ -392,7 +450,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(
                 'Compte ${_roleLabel(role)}',
                 style: GoogleFonts.inter(
-                  color: Colors.white60,
+                  color: secondaryText,
                   fontSize: 12,
                 ),
               ),
@@ -404,11 +462,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           height: 38,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.08),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : AppTheme.surface0,
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.15) : const Color(0xFFE2E8F0),
+            ),
           ),
           child: IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 18),
+            icon: Icon(Icons.settings_outlined, color: primaryText, size: 18),
             onPressed: () {},
             padding: EdgeInsets.zero,
           ),
@@ -434,24 +494,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   // Hero Card matching reference design card
-  Widget _buildHeroAgencyCard(String tenantName, String tenantSlug, String status) {
+  Widget _buildHeroAgencyCard(String tenantName, String tenantSlug, String status, bool isDark) {
     final isActive = status.toLowerCase() == 'active';
+    final glowColor = isDark ? _DarkTokens.neonViolet : AppTheme.primary600;
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: _DarkTokens.heroGradient,
+          colors: isDark ? _DarkTokens.heroGradient : _DarkTokens.heroGradientLight,
         ),
         border: Border.all(
-          color: _DarkTokens.neonViolet.withValues(alpha: 0.3),
+          color: glowColor.withValues(alpha: 0.3),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: _DarkTokens.neonViolet.withValues(alpha: 0.2),
+            color: glowColor.withValues(alpha: 0.2),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -585,16 +646,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   // Left Bento Card: Glowing Weekly Productivity Bar Chart
-  Widget _buildWeeklyProductivityCard() {
+  Widget _buildWeeklyProductivityCard(
+      bool isDark,
+      Color cardColor,
+      Color borderColor,
+      Color primaryText,
+      Color secondaryText,
+      ) {
     final days = const ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     final heights = const [0.4, 0.7, 1.0, 0.5, 0.85, 0.6, 0.45];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _DarkTokens.cardDark,
+        color: cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -602,14 +669,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Text(
             'Activité Flotte',
             style: GoogleFonts.inter(
-              color: Colors.white,
+              color: primaryText,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
           ),
           Text(
             'Hebdomadaire',
-            style: GoogleFonts.inter(color: Colors.white54, fontSize: 11),
+            style: GoogleFonts.inter(color: secondaryText, fontSize: 11),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -638,31 +705,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         boxShadow: isHighlight
                             ? [
-                                BoxShadow(
-                                  color: _DarkTokens.neonPink.withValues(alpha: 0.6),
-                                  blurRadius: 8,
-                                ),
-                              ]
+                          BoxShadow(
+                            color: _DarkTokens.neonPink.withValues(alpha: 0.6),
+                            blurRadius: 8,
+                          ),
+                        ]
                             : null,
                       ),
                       alignment: Alignment.topCenter,
                       child: isHighlight
                           ? Container(
-                              width: 6,
-                              height: 6,
-                              margin: const EdgeInsets.only(top: 3),
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                              ),
-                            )
+                        width: 6,
+                        height: 6,
+                        margin: const EdgeInsets.only(top: 3),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                      )
                           : null,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       days[index],
                       style: GoogleFonts.inter(
-                        color: isHighlight ? Colors.white : Colors.white38,
+                        color: isHighlight ? primaryText : secondaryText,
                         fontSize: 10,
                         fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
                       ),
@@ -677,7 +744,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  // Right Bento Card: Electric Blue Upgrade / Stats Card
+  // Right Bento Card: Electric Blue Upgrade / Stats Card (fixed accent card, same both themes)
   Widget _buildAgencyQuickCard(String tenantName, String status) {
     return Consumer(
       builder: (context, ref, child) {
@@ -764,23 +831,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  // Dark Neon Menu Items
+  // Menu Items — dark + light aware
   Widget _buildDarkMenuItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required String route,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required String subtitle,
+        required Color color,
+        required String route,
+        required bool isDark,
+        required Color cardColor,
+        required Color borderColor,
+        required Color primaryText,
+        required Color secondaryText,
+      }) {
     return GestureDetector(
       onTap: () => context.push(route),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: _DarkTokens.cardDark,
+          color: cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
           children: [
@@ -801,7 +873,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Text(
                     title,
                     style: GoogleFonts.inter(
-                      color: Colors.white,
+                      color: primaryText,
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                     ),
@@ -810,14 +882,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Text(
                     subtitle,
                     style: GoogleFonts.inter(
-                      color: Colors.white54,
+                      color: secondaryText,
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.white38, size: 20),
+            Icon(Icons.chevron_right, color: secondaryText, size: 20),
           ],
         ),
       ),
@@ -826,7 +898,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Dark Notifications Toggle
+//  Dark/Light Notifications Toggle
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DarkNotificationsToggle extends ConsumerWidget {
@@ -835,13 +907,18 @@ class _DarkNotificationsToggle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(notificationsEnabledProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? _DarkTokens.cardDark : AppTheme.surface0;
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white54 : AppTheme.ink600;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: _DarkTokens.cardDark,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -862,14 +939,14 @@ class _DarkNotificationsToggle extends ConsumerWidget {
                 Text(
                   'Notifications',
                   style: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: primaryText,
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
                 ),
                 Text(
                   enabled ? 'Activées' : 'Désactivées',
-                  style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+                  style: GoogleFonts.inter(color: secondaryText, fontSize: 12),
                 ),
               ],
             ),
@@ -887,7 +964,7 @@ class _DarkNotificationsToggle extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Dark Language Toggle
+//  Dark/Light Language Toggle
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DarkLanguageToggle extends ConsumerWidget {
@@ -896,13 +973,18 @@ class _DarkLanguageToggle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(selectedLanguageProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? _DarkTokens.cardDark : AppTheme.surface0;
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white54 : AppTheme.ink600;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: _DarkTokens.cardDark,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -923,21 +1005,21 @@ class _DarkLanguageToggle extends ConsumerWidget {
                 Text(
                   'Langue',
                   style: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: primaryText,
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
                 ),
                 Text(
                   'Interface de l\'application',
-                  style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+                  style: GoogleFonts.inter(color: secondaryText, fontSize: 12),
                 ),
               ],
             ),
           ),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: isDark ? Colors.white.withValues(alpha: 0.06) : AppTheme.surfaceApp,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -946,11 +1028,15 @@ class _DarkLanguageToggle extends ConsumerWidget {
                 _DarkLangChip(
                   label: 'FR',
                   selected: lang == 'FR',
+                  isDark: isDark,
+                  secondaryText: secondaryText,
                   onTap: () => ref.read(selectedLanguageProvider.notifier).select('FR'),
                 ),
                 _DarkLangChip(
                   label: 'AR',
                   selected: lang == 'AR',
+                  isDark: isDark,
+                  secondaryText: secondaryText,
                   onTap: () => ref.read(selectedLanguageProvider.notifier).select('AR'),
                 ),
               ],
@@ -965,11 +1051,15 @@ class _DarkLanguageToggle extends ConsumerWidget {
 class _DarkLangChip extends StatelessWidget {
   final String label;
   final bool selected;
+  final bool isDark;
+  final Color secondaryText;
   final VoidCallback onTap;
 
   const _DarkLangChip({
     required this.label,
     required this.selected,
+    required this.isDark,
+    required this.secondaryText,
     required this.onTap,
   });
 
@@ -981,13 +1071,13 @@ class _DarkLangChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? _DarkTokens.neonViolet : Colors.transparent,
+          color: selected ? (isDark ? _DarkTokens.neonViolet : AppTheme.primary600) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           label,
           style: GoogleFonts.inter(
-            color: selected ? Colors.white : Colors.white54,
+            color: selected ? Colors.white : secondaryText,
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -998,7 +1088,7 @@ class _DarkLangChip extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Dark User Info Card
+//  Dark/Light User Info Card
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DarkUserInfoCard extends StatelessWidget {
@@ -1018,36 +1108,42 @@ class _DarkUserInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? _DarkTokens.cardDark : AppTheme.surface0;
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0);
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+    final dividerColor = isDark ? Colors.white10 : const Color(0xFFE2E8F0);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _DarkTokens.cardDark,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.info_outline, size: 16, color: Colors.white54),
+              Icon(Icons.info_outline, size: 16, color: secondaryText),
               const SizedBox(width: 6),
               Text(
                 'Informations du compte',
-                style: GoogleFonts.inter(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.bold),
+                style: GoogleFonts.inter(color: secondaryText, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Colors.white10),
+          Divider(height: 1, color: dividerColor),
           _DarkInfoRow(icon: Icons.person_outline, label: 'Utilisateur', value: username),
-          const Divider(height: 1, color: Colors.white10),
+          Divider(height: 1, color: dividerColor),
           _DarkInfoRow(icon: Icons.shield_outlined, label: 'Rôle', value: _roleLabel(role)),
-          const Divider(height: 1, color: Colors.white10),
+          Divider(height: 1, color: dividerColor),
           _DarkInfoRow(icon: Icons.storefront_outlined, label: 'Agence', value: tenantName),
-          const Divider(height: 1, color: Colors.white10),
+          Divider(height: 1, color: dividerColor),
           _DarkInfoRow(icon: Icons.badge_outlined, label: 'Identifiant', value: tenantSlug, isMono: true),
-          const Divider(height: 1, color: Colors.white10),
+          Divider(height: 1, color: dividerColor),
           _DarkInfoRow(
             icon: Icons.verified_outlined,
             label: 'Statut',
@@ -1077,31 +1173,36 @@ class _DarkInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white54 : AppTheme.ink600;
+    final iconColor = isDark ? Colors.white38 : AppTheme.ink400;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.white38),
+          Icon(icon, size: 16, color: iconColor),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
-              style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+              style: GoogleFonts.inter(color: secondaryText, fontSize: 12),
             ),
           ),
           Text(
             value,
             style: isMono
                 ? GoogleFonts.courierPrime(
-                    color: valueColor ?? Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  )
+              color: valueColor ?? primaryText,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            )
                 : GoogleFonts.inter(
-                    color: valueColor ?? Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
+              color: valueColor ?? primaryText,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
@@ -1110,7 +1211,7 @@ class _DarkInfoRow extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Dark Logout Button
+//  Logout Button (fixed accent, same both themes)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DarkLogoutButton extends ConsumerWidget {
@@ -1118,6 +1219,9 @@ class _DarkLogoutButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? _DarkTokens.cardDark : AppTheme.surface0;
+
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
@@ -1125,17 +1229,20 @@ class _DarkLogoutButton extends ConsumerWidget {
           final confirm = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              backgroundColor: _DarkTokens.cardDark,
+              backgroundColor: cardColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: const BorderSide(color: Colors.white10),
+                side: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
               ),
-              title: Text('Déconnexion', style: GoogleFonts.outfit(color: Colors.white)),
-              content: Text('Voulez-vous vraiment vous déconnecter ?', style: GoogleFonts.inter(color: Colors.white70)),
+              title: Text('Déconnexion', style: GoogleFonts.outfit(color: isDark ? Colors.white : AppTheme.ink900)),
+              content: Text(
+                'Voulez-vous vraiment vous déconnecter ?',
+                style: GoogleFonts.inter(color: isDark ? Colors.white70 : AppTheme.ink600),
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: Text('Annuler', style: GoogleFonts.inter(color: Colors.white54)),
+                  child: Text('Annuler', style: GoogleFonts.inter(color: isDark ? Colors.white54 : AppTheme.ink600)),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, true),
@@ -1169,17 +1276,18 @@ class _DarkLogoutButton extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Dark Skeleton & Error State
+//  Skeleton & Error State
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ProfileSkeletonDark extends StatelessWidget {
-  const _ProfileSkeletonDark();
+  final bool isDark;
+  const _ProfileSkeletonDark({required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: CircularProgressIndicator(
-        color: _DarkTokens.neonViolet,
+        color: isDark ? _DarkTokens.neonViolet : AppTheme.primary600,
       ),
     );
   }
@@ -1188,11 +1296,15 @@ class _ProfileSkeletonDark extends StatelessWidget {
 class _ProfileErrorDark extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
+  final bool isDark;
 
-  const _ProfileErrorDark({required this.message, required this.onRetry});
+  const _ProfileErrorDark({required this.message, required this.onRetry, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white54 : AppTheme.ink600;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -1210,13 +1322,13 @@ class _ProfileErrorDark extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Impossible de charger le profil',
-              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              style: GoogleFonts.outfit(color: primaryText, fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: Colors.white54, fontSize: 13),
+              style: GoogleFonts.inter(color: secondaryText, fontSize: 13),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -1224,7 +1336,7 @@ class _ProfileErrorDark extends StatelessWidget {
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text('Réessayer'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _DarkTokens.neonViolet,
+                backgroundColor: isDark ? _DarkTokens.neonViolet : AppTheme.primary600,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
@@ -1237,7 +1349,7 @@ class _ProfileErrorDark extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Dark Theme Toggle Widget
+//  Dark/Light Theme Toggle Widget (already correct, kept as-is)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DarkThemeToggle extends ConsumerWidget {

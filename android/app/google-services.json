@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "364399311660",
+    "project_id": "automedon-ea417",
+    "storage_bucket": "automedon-ea417.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364399311660:android:ca8dbc7565c8a5959f4a89",
+        "android_client_info": {
+          "package_name": "com.example.automedon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaFgGPK4bLGt6AuXNVtGMPro9nKtE2Usw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364399311660:android:0065964f060cd95e9f4a89",
+        "android_client_info": {
+          "package_name": "com.example.automedon_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaFgGPK4bLGt6AuXNVtGMPro9nKtE2Usw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

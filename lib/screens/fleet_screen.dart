@@ -22,52 +22,57 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
     final carsAsync = ref.watch(carsProvider(_selectedFilter));
 
     return AppAmbientGlow(
-      child: Scaffold(
+        child: Scaffold(
         backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
         appBar: AppBar(
-          backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
-          title: Text('Parc Véhicules', style: AppTextStyles.displayLg(color: isDark ? Colors.white : AppTheme.ink900)),
-          centerTitle: false,
-        ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildSearchBar(),
-            _buildFilterChips(),
-            Expanded(
-              child: carsAsync.when(
-                data: (data) {
-                  final cars = data['cars'] as List? ?? [];
-                  return ListView(
-                    padding: const EdgeInsets.all(AppTheme.sp4),
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      Text(
-                        '${cars.length} véhicules trouvés',
-                        style: AppTextStyles.bodyMd(color: isDark ? Colors.white70 : AppTheme.ink600),
-                      ),
-                      const SizedBox(height: AppTheme.sp4),
-                      ...cars.map((c) => _buildCarCard(c)),
-                      const SizedBox(height: 140),
-                    ],
-                  );
-                },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => Center(
-                child: Text(
-                  'Erreur de chargement',
-                  style: AppTextStyles.bodyLg(color: AppTheme.danger),
+        backgroundColor: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
+        title: Text('Parc Véhicules', style: AppTextStyles.displayLg(color: isDark ? Colors.white : AppTheme.ink900)),
+    centerTitle: false,
+    ),
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSearchBar(isDark),
+              _buildFilterChips(isDark),
+              Expanded(
+                child: carsAsync.when(
+                  data: (data) {
+                    final cars = data['cars'] as List? ?? [];
+                    return ListView(
+                      padding: const EdgeInsets.all(AppTheme.sp4),
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        Text(
+                          '${cars.length} véhicules trouvés',
+                          style: AppTextStyles.bodyMd(
+                            color: isDark ? Colors.white70 : AppTheme.ink600,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.sp4),
+                        ...cars.map((c) => _buildCarCard(c, isDark)),
+                        const SizedBox(height: 140),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  error: (_, __) => Center(
+                    child: Text(
+                      'Erreur de chargement',
+                      style: AppTextStyles.bodyLg(color: AppTheme.danger),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-    ),
+        ),
     );
+
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.sp4,
@@ -77,10 +82,11 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
         children: [
           Expanded(
             child: TextField(
+              style: TextStyle(color: isDark ? Colors.white : AppTheme.ink900),
               decoration: InputDecoration(
                 hintText: 'Rechercher un véhicule...',
-                prefixIcon: const Icon(Icons.search, color: AppTheme.ink400),
-                fillColor: AppTheme.surface0,
+                prefixIcon: Icon(Icons.search, color: isDark ? Colors.white60 : AppTheme.ink400),
+                fillColor: isDark ? AppTheme.darkSurface : AppTheme.surface0,
                 filled: true,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusFull),
@@ -110,7 +116,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
     );
   }
 
-  Widget _buildFilterChips() {
+  Widget _buildFilterChips(bool isDark) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
@@ -119,19 +125,19 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
       ),
       child: Row(
         children: [
-          _buildChip('Tous', null),
+          _buildChip('Tous', null, isDark),
           const SizedBox(width: AppTheme.sp2),
-          _buildChip('Disponible', 'disponible'),
+          _buildChip('Disponible', 'disponible', isDark),
           const SizedBox(width: AppTheme.sp2),
-          _buildChip('Loué', 'loue'),
+          _buildChip('Loué', 'loue', isDark),
           const SizedBox(width: AppTheme.sp2),
-          _buildChip('Maintenance', 'maintenance'),
+          _buildChip('Maintenance', 'maintenance', isDark),
         ],
       ),
     );
   }
 
-  Widget _buildChip(String label, String? value) {
+  Widget _buildChip(String label, String? value, bool isDark) {
     final isSelected = _selectedFilter == value;
     return GestureDetector(
       onTap: () {
@@ -146,24 +152,26 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
           vertical: AppTheme.sp2,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary600 : AppTheme.surface0,
+          color: isSelected ? AppTheme.primary600 : (isDark ? AppTheme.darkSurface : AppTheme.surface0),
           borderRadius: BorderRadius.circular(AppTheme.radiusFull),
           boxShadow: isSelected ? AppTheme.shadowSm : null,
           border: Border.all(
-            color: isSelected ? AppTheme.primary600 : Colors.white.withValues(alpha: 0.8),
+            color: isSelected
+                ? AppTheme.primary600
+                : (isDark ? AppTheme.darkBorder : Colors.white.withValues(alpha: 0.8)),
           ),
         ),
         child: Text(
           label,
           style: AppTextStyles.bodyLg(
-            color: isSelected ? Colors.white : AppTheme.ink600,
+            color: isSelected ? Colors.white : (isDark ? Colors.white60 : AppTheme.ink600),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCarCard(Map<String, dynamic> car) {
+  Widget _buildCarCard(Map<String, dynamic> car, bool isDark) {
     final brand = car['brand'] ?? '';
     final model = car['model'] ?? '';
     final plate = car['plate_number'] ?? '';
@@ -171,6 +179,10 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
     final mileage = car['mileage'] ?? '';
     final status = car['status'] as String? ?? 'disponible';
     final imgUrl = car['image_url'];
+
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+    final tileBg = isDark ? AppTheme.darkBg : AppTheme.surfaceApp;
 
     Color statusColor;
     String statusText;
@@ -202,22 +214,22 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                   ),
                   child: Container(
                     height: 180,
-                    color: AppTheme.surfaceApp,
+                    color: tileBg,
                     child: imgUrl != null
                         ? Image.network(
-                            imgUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.directions_car_outlined,
-                              size: 50,
-                              color: AppTheme.ink400,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.directions_car_outlined,
-                            size: 80,
-                            color: AppTheme.ink400,
-                          ),
+                      imgUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.directions_car_outlined,
+                        size: 50,
+                        color: isDark ? Colors.white24 : AppTheme.ink400,
+                      ),
+                    )
+                        : Icon(
+                      Icons.directions_car_outlined,
+                      size: 80,
+                      color: isDark ? Colors.white24 : AppTheme.ink400,
+                    ),
                   ),
                 ),
                 Positioned(
@@ -244,7 +256,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                         children: [
                           Text(
                             '$brand $model',
-                            style: AppTextStyles.displayMd(),
+                            style: AppTextStyles.displayMd(color: primaryText),
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -252,17 +264,17 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.surfaceApp,
+                                  color: tileBg,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   plate.toString(),
-                                  style: AppTextStyles.dataSm(color: AppTheme.ink900),
+                                  style: AppTextStyles.dataSm(color: primaryText),
                                 ),
                               ),
                               if (year.toString().isNotEmpty) ...[
-                                Text(' • ', style: AppTextStyles.bodyMd()),
-                                Text(year.toString(), style: AppTextStyles.bodyMd()),
+                                Text(' • ', style: AppTextStyles.bodyMd(color: secondaryText)),
+                                Text(year.toString(), style: AppTextStyles.bodyMd(color: secondaryText)),
                               ],
                             ],
                           ),
@@ -273,11 +285,11 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                   const SizedBox(height: AppTheme.sp4),
                   Row(
                     children: [
-                      _buildInfoChip(Icons.local_gas_station_outlined, 'Diesel'),
+                      _buildInfoChip(Icons.local_gas_station_outlined, 'Diesel', isDark),
                       const SizedBox(width: AppTheme.sp2),
-                      _buildInfoChip(Icons.settings_outlined, 'Automatique'),
+                      _buildInfoChip(Icons.settings_outlined, 'Automatique', isDark),
                       const SizedBox(width: AppTheme.sp2),
-                      _buildInfoChip(Icons.speed_outlined, '$mileage km'),
+                      _buildInfoChip(Icons.speed_outlined, '$mileage km', isDark),
                     ],
                   ),
                   const SizedBox(height: AppTheme.sp4),
@@ -310,24 +322,24 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String label) {
+  Widget _buildInfoChip(IconData icon, String label, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.sp2,
         vertical: AppTheme.sp1,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceApp,
+        color: isDark ? AppTheme.darkBg : AppTheme.surfaceApp,
         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppTheme.ink600),
+          Icon(icon, size: 14, color: isDark ? Colors.white60 : AppTheme.ink600),
           const SizedBox(width: 4),
           Text(
             label,
-            style: AppTextStyles.caption(color: AppTheme.ink600),
+            style: AppTextStyles.caption(color: isDark ? Colors.white60 : AppTheme.ink600),
           ),
         ],
       ),

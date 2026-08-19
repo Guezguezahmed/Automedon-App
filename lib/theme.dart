@@ -204,6 +204,11 @@ class AppTheme {
         height: 1.30,
         color: primaryColor,
       ),
+      titleLarge: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: primaryColor,
+      ),
       bodyLarge: GoogleFonts.inter(
         fontSize: 16,
         fontWeight: FontWeight.w500,

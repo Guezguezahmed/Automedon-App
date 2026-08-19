@@ -29,7 +29,7 @@ class ReservationDetailScreen extends ConsumerWidget {
       body: detailAsync.when(
         data: (data) {
           final reservation = Reservation.fromJson(data['reservation'] as Map<String, dynamic>);
-          return _buildContent(context, reservation);
+          return _buildContent(context, reservation, isDark);
         },
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
         error: (e, _) => Center(
@@ -39,8 +39,11 @@ class ReservationDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, Reservation r) {
+  Widget _buildContent(BuildContext context, Reservation r, bool isDark) {
     final statusInfo = _statusInfo(r.status);
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final dividerColor = isDark ? AppTheme.darkBorder : const Color(0xFFE5E7EB);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -66,8 +69,8 @@ class ReservationDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 4),
                           Text(
                             'CONTRAT ${r.contractNumber ?? r.reservationNumber ?? "N/A"}',
-                            style: const TextStyle(
-                              color: AppTheme.textSecondary,
+                            style: TextStyle(
+                              color: secondaryText,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
@@ -94,11 +97,11 @@ class ReservationDetailScreen extends ConsumerWidget {
                 ),
                 if (r.clientPhone != null) ...[
                   const SizedBox(height: 14),
-                  const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                  Divider(height: 1, color: dividerColor),
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      const Icon(Icons.phone, size: 16, color: AppTheme.textSecondary),
+                      Icon(Icons.phone, size: 16, color: secondaryText),
                       const SizedBox(width: 8),
                       Text(
                         r.clientPhone!,
@@ -134,11 +137,11 @@ class ReservationDetailScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: _dateBlock(context, 'Départ', r.startDate),
+                      child: _dateBlock(context, 'Départ', r.startDate, secondaryText),
                     ),
-                    Container(width: 1, height: 36, color: const Color(0xFFE5E7EB)),
+                    Container(width: 1, height: 36, color: dividerColor),
                     Expanded(
-                      child: _dateBlock(context, 'Retour', r.endDate, alignRight: true),
+                      child: _dateBlock(context, 'Retour', r.endDate, secondaryText, alignRight: true),
                     ),
                   ],
                 ),
@@ -208,11 +211,11 @@ class ReservationDetailScreen extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 15),
                 ),
                 const SizedBox(height: 16),
-                _row(context, 'Prix total', '${r.totalPrice ?? 0} DT', isTotal: true),
+                _row(context, 'Prix total', '${r.totalPrice ?? 0} DT', primaryText, isTotal: true),
                 const SizedBox(height: 12),
-                const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                Divider(height: 1, color: dividerColor),
                 const SizedBox(height: 12),
-                _row(context, 'Avance versée', '${r.advancePayment ?? 0} DT'),
+                _row(context, 'Avance versée', '${r.advancePayment ?? 0} DT', primaryText),
               ],
             ),
           ),
@@ -221,14 +224,14 @@ class ReservationDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _dateBlock(BuildContext context, String label, String isoDate, {bool alignRight = false}) {
+  Widget _dateBlock(BuildContext context, String label, String isoDate, Color secondaryText, {bool alignRight = false}) {
     final formatted = _formatDate(isoDate);
     return Column(
       crossAxisAlignment: alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          style: TextStyle(color: secondaryText, fontSize: 12),
         ),
         const SizedBox(height: 4),
         Text(
@@ -252,7 +255,7 @@ class ReservationDetailScreen extends ConsumerWidget {
     }
   }
 
-  Widget _row(BuildContext context, String label, String value, {bool isTotal = false}) {
+  Widget _row(BuildContext context, String label, String value, Color primaryText, {bool isTotal = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -264,7 +267,7 @@ class ReservationDetailScreen extends ConsumerWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: isTotal ? 18 : 14,
-              color: isTotal ? AppTheme.primary : AppTheme.textPrimary,
+              color: isTotal ? AppTheme.primary : primaryText,
             ),
           ),
         ],

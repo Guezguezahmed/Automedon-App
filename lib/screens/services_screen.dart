@@ -72,7 +72,7 @@ class ServicesScreen extends StatelessWidget {
                   ),
                   child: Text(
                     'Agences',
-                    style: AppTextStyles.bodyLg(color: AppTheme.ink900),
+                    style: AppTextStyles.bodyLg(color: isDark ? Colors.white : AppTheme.ink900),
                   ),
                 ),
                 const SizedBox(width: AppTheme.sp2),

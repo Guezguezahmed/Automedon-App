@@ -3,36 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
 import '../theme.dart';
 
-/// ---------------------------------------------------------------------
-/// Vision360 -- connecté à vision360Provider (au lieu de données mockées).
-/// La conversion se fait dans _mapToVehicles() : elle combine cars[] +
-/// timeline[] du Vision360Response pour reconstituer les _MockVehicle
-/// attendus par les widgets existants (_VehicleStatusCard,
-/// _VehicleTimelineCard).
-///
-/// Correctifs appliqués (voir conversation) :
-/// 1) Le toggle "Réservations à venir uniquement" filtre maintenant
-///    réellement la liste affichée (avant : ne changeait que la bannière).
-/// 2) Le statut 'maintenance' (3e valeur possible selon MOBILE_API.md,
-///    section 4.3) est géré explicitement au lieu d'être confondu avec
-///    'disponible'.
-/// 3) occupiedDayIndex (toujours 0) est remplacé par un couple
-///    (occupiedStartIndex, occupiedSpan) calculé à partir de la vraie
-///    date de début/fin de la réservation par rapport à window.start,
-///    pour positionner correctement le highlight dans la mini-timeline
-///    de 7 jours et représenter sa durée réelle (pas juste 1 case).
-///
-/// À CONFIRMER côté backend/design (pas dans MOBILE_API.md) :
-/// - Le sens exact du filtre "Tous / Auto / Manuel" vu sur le web (a
-///   priori PAS la transmission de la voiture -- plutôt un mode de
-///   création de réservation). Pas encore implémenté ici tant que ce
-///   n'est pas confirmé.
-/// - Le comportement exact voulu pour "Réservations à venir uniquement" :
-///   ici interprété comme "n'afficher que les véhicules ayant une
-///   réservation (en cours ou à venir)", à ajuster si le vrai
-///   comportement est différent (ex: exclure aussi les réservations déjà
-///   en cours, ne garder que le futur strict).
-/// ---------------------------------------------------------------------
 class Vision360Screen extends ConsumerStatefulWidget {
   const Vision360Screen({super.key});
 
@@ -73,14 +43,14 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
         centerTitle: false,
       ),
       body: vision360Async.when(
-        data: (data) => _buildBody(data),
+        data: (data) => _buildBody(data, isDark),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, __) => Center(child: Text('Erreur de chargement : $e')),
       ),
     );
   }
 
-  Widget _buildBody(Map<String, dynamic> data) {
+  Widget _buildBody(Map<String, dynamic> data, bool isDark) {
     final allVehicles = _mapToVehicles(data);
     final carCount = (data['cars'] as List? ?? []).length;
     final returningSoon = (data['returningSoon'] as List? ?? []);
@@ -94,40 +64,43 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
 
     return Column(
       children: [
-        _buildHeaderCard(carCount),
-        _buildToggleCard(),
-        if (_showUpcomingOnly) _buildUpcomingBanner(returningSoon.length),
+        _buildHeaderCard(carCount, isDark),
+        _buildToggleCard(isDark),
+        if (_showUpcomingOnly) _buildUpcomingBanner(returningSoon.length, isDark),
         const SizedBox(height: 4),
-        _buildModeSwitch(),
+        _buildModeSwitch(isDark),
         Expanded(
           child: vehicles.isEmpty
-              ? _buildEmptyState()
+              ? _buildEmptyState(isDark)
               : (_mode == _ViewMode.liste
-              ? _buildListView(vehicles)
-              : _buildTimelineView(vehicles, data['window'] as Map<String, dynamic>?)),
+              ? _buildListView(vehicles, isDark)
+              : _buildTimelineView(vehicles, data['window'] as Map<String, dynamic>?, isDark)),
         ),
       ],
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDark) {
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.event_busy_outlined, size: 48, color: Color(0xFFD1D5DB)),
+            Icon(Icons.event_busy_outlined, size: 48, color: isDark ? Colors.white24 : const Color(0xFFD1D5DB)),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Aucune réservation à venir',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: primaryText),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Désactivez le filtre pour voir tous les véhicules.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              style: TextStyle(fontSize: 12, color: secondaryText),
             ),
           ],
         ),
@@ -135,10 +108,6 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
     );
   }
 
-  // ------------------------------------------------------------------
-  // Conversion des données réelles (Vision360Response en Map) vers le
-  // modèle d'affichage _MockVehicle utilisé par les widgets existants.
-  // ------------------------------------------------------------------
   List<_MockVehicle> _mapToVehicles(Map<String, dynamic> data) {
     final cars = (data['cars'] as List? ?? []).cast<Map<String, dynamic>>();
     final timeline = (data['timeline'] as List? ?? []).cast<Map<String, dynamic>>();
@@ -286,16 +255,23 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
   // ------------------------------------------------------------------
   // Header : icône Vision360 + compteur flotte (dynamique)
   // ------------------------------------------------------------------
-  Widget _buildHeaderCard(int carCount) {
+  Widget _buildHeaderCard(int carCount, bool isDark) {
+    final cardColor = isDark ? AppTheme.darkSurface : Colors.white;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: isDark
+            ? null
+            : [
           BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
         ],
+        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
       ),
       child: Row(
         children: [
@@ -310,12 +286,12 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Vision360',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                Text('Vision360',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryText),
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text('$carCount véhicules dans la flotte',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    style: TextStyle(fontSize: 12, color: secondaryText),
                     overflow: TextOverflow.ellipsis),
               ],
             ),
@@ -325,24 +301,30 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
     );
   }
 
-  Widget _buildToggleCard() {
+  Widget _buildToggleCard(bool isDark) {
+    final cardColor = isDark ? AppTheme.darkSurface : Colors.white;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: isDark
+            ? null
+            : [
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
         ],
+        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
       ),
       child: Row(
         children: [
           const Icon(Icons.event_available_outlined, size: 16, color: AppTheme.primary),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text('Réservations à venir uniquement',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryText),
                 overflow: TextOverflow.ellipsis),
           ),
           Switch(
@@ -355,17 +337,22 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
     );
   }
 
-  Widget _buildUpcomingBanner(int count) {
+  Widget _buildUpcomingBanner(int count, bool isDark) {
+    final bannerBg = isDark ? AppTheme.neonViolet.withOpacity(0.15) : const Color(0xFFF3F0FF);
+    final iconBg = isDark ? AppTheme.darkSurface : Colors.white;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: const Color(0xFFF3F0FF), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(color: bannerBg, borderRadius: BorderRadius.circular(16)),
       child: Row(
         children: [
           Container(
             width: 32,
             height: 32,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.event_available, size: 16, color: AppTheme.primary),
           ),
           const SizedBox(width: 10),
@@ -373,12 +360,12 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Réservations confirmées à venir',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                Text('Réservations confirmées à venir',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryText),
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text('$count réservation${count > 1 ? 's' : ''} confirmée${count > 1 ? 's' : ''}',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    style: TextStyle(fontSize: 12, color: secondaryText),
                     overflow: TextOverflow.ellipsis),
               ],
             ),
@@ -388,24 +375,28 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
     );
   }
 
-  Widget _buildModeSwitch() {
+  Widget _buildModeSwitch(bool isDark) {
+    final trackColor = isDark ? AppTheme.darkSurface : const Color(0xFFF3F4F6);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Container(
         padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)),
+        decoration: BoxDecoration(color: trackColor, borderRadius: BorderRadius.circular(999)),
         child: Row(
           children: [
-            Expanded(child: _segmentButton('Liste', Icons.list_alt_outlined, _ViewMode.liste)),
-            Expanded(child: _segmentButton('Chronologie', Icons.calendar_month_outlined, _ViewMode.chronologie)),
+            Expanded(child: _segmentButton('Liste', Icons.list_alt_outlined, _ViewMode.liste, isDark)),
+            Expanded(child: _segmentButton('Chronologie', Icons.calendar_month_outlined, _ViewMode.chronologie, isDark)),
           ],
         ),
       ),
     );
   }
 
-  Widget _segmentButton(String label, IconData icon, _ViewMode value) {
+  Widget _segmentButton(String label, IconData icon, _ViewMode value, bool isDark) {
     final selected = _mode == value;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+
     return GestureDetector(
       onTap: () => setState(() => _mode = value),
       child: AnimatedContainer(
@@ -418,7 +409,7 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 15, color: selected ? Colors.white : AppTheme.textSecondary),
+            Icon(icon, size: 15, color: selected ? Colors.white : secondaryText),
             const SizedBox(width: 6),
             Flexible(
               child: Text(label,
@@ -426,7 +417,7 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: selected ? Colors.white : AppTheme.textSecondary,
+                    color: selected ? Colors.white : secondaryText,
                   )),
             ),
           ],
@@ -435,25 +426,25 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
     );
   }
 
-  Widget _buildListView(List<_MockVehicle> vehicles) {
+  Widget _buildListView(List<_MockVehicle> vehicles, bool isDark) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: vehicles.map((v) => _VehicleStatusCard(vehicle: v)).toList(),
+      children: vehicles.map((v) => _VehicleStatusCard(vehicle: v, isDark: isDark)).toList(),
     );
   }
 
-  Widget _buildTimelineView(List<_MockVehicle> vehicles, Map<String, dynamic>? window) {
+  Widget _buildTimelineView(List<_MockVehicle> vehicles, Map<String, dynamic>? window, bool isDark) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        _buildDateRangeBar(window),
+        _buildDateRangeBar(window, isDark),
         const SizedBox(height: 12),
-        ...vehicles.map((v) => _VehicleTimelineCard(vehicle: v)),
+        ...vehicles.map((v) => _VehicleTimelineCard(vehicle: v, isDark: isDark)),
       ],
     );
   }
 
-  Widget _buildDateRangeBar(Map<String, dynamic>? window) {
+  Widget _buildDateRangeBar(Map<String, dynamic>? window, bool isDark) {
     String label = '--';
     if (window != null) {
       try {
@@ -464,18 +455,26 @@ class _Vision360ScreenState extends ConsumerState<Vision360Screen> {
       } catch (_) {}
     }
 
+    final cardColor = isDark ? AppTheme.darkSurface : Colors.white;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
+      ),
       child: Row(
         children: [
-          const Icon(Icons.chevron_left, size: 18, color: AppTheme.textSecondary),
+          Icon(Icons.chevron_left, size: 18, color: secondaryText),
           const Spacer(),
-          const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textSecondary),
+          Icon(Icons.calendar_today_outlined, size: 14, color: secondaryText),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primaryText)),
           const Spacer(),
-          const Icon(Icons.chevron_right, size: 18, color: AppTheme.textSecondary),
+          Icon(Icons.chevron_right, size: 18, color: secondaryText),
         ],
       ),
     );
@@ -538,22 +537,32 @@ class _StatusStyle {
 
 class _VehicleStatusCard extends StatelessWidget {
   final _MockVehicle vehicle;
-  const _VehicleStatusCard({required this.vehicle});
+  final bool isDark;
+  const _VehicleStatusCard({required this.vehicle, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     final isRented = vehicle.status == 'loue';
     final style = _StatusStyle.of(vehicle.status);
 
+    final cardColor = isDark ? AppTheme.darkSurface : Colors.white;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+    final iconBoxColor = isDark ? AppTheme.darkBg : const Color(0xFFF3F4F6);
+    final innerBoxColor = isDark ? AppTheme.darkBg : const Color(0xFFF9FAFB);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
+        boxShadow: isDark
+            ? null
+            : [
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
         ],
+        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,8 +573,8 @@ class _VehicleStatusCard extends StatelessWidget {
               Container(
                 width: 42,
                 height: 42,
-                decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.directions_car_filled_outlined, size: 20, color: AppTheme.textSecondary),
+                decoration: BoxDecoration(color: iconBoxColor, borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.directions_car_filled_outlined, size: 20, color: secondaryText),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -574,11 +583,11 @@ class _VehicleStatusCard extends StatelessWidget {
                   children: [
                     Text('${vehicle.brand} ${vehicle.model}',
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryText)),
                     const SizedBox(height: 2),
                     Text(vehicle.plate,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 12, color: secondaryText)),
                   ],
                 ),
               ),
@@ -590,18 +599,18 @@ class _VehicleStatusCard extends StatelessWidget {
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(color: innerBoxColor, borderRadius: BorderRadius.circular(14)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.person_outline, size: 14, color: AppTheme.textSecondary),
+                      Icon(Icons.person_outline, size: 14, color: secondaryText),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(vehicle.clientName ?? '',
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryText)),
                       ),
                       if (vehicle.statusLabel != null) ...[
                         const SizedBox(width: 6),
@@ -615,7 +624,10 @@ class _VehicleStatusCard extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(999)),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppTheme.error.withOpacity(0.18) : const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                         child: Text(vehicle.paymentLabel!,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.error)),
@@ -625,9 +637,9 @@ class _VehicleStatusCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _dateChip(Icons.login, 'Départ', vehicle.startDate ?? '--'),
+                      _dateChip(Icons.login, 'Départ', vehicle.startDate ?? '--', secondaryText),
                       const SizedBox(width: 8),
-                      _dateChip(Icons.logout, 'Retour', vehicle.endDate ?? '--'),
+                      _dateChip(Icons.logout, 'Retour', vehicle.endDate ?? '--', secondaryText),
                     ],
                   ),
                 ],
@@ -638,8 +650,8 @@ class _VehicleStatusCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(color: AppTheme.error.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Icon(Icons.build_outlined, size: 14, color: AppTheme.error),
                   SizedBox(width: 6),
                   Text('Immobilisée pour maintenance aujourd\'hui',
@@ -653,15 +665,15 @@ class _VehicleStatusCard extends StatelessWidget {
     );
   }
 
-  Widget _dateChip(IconData icon, String label, String value) {
+  Widget _dateChip(IconData icon, String label, String value, Color secondaryText) {
     return Expanded(
       child: Row(
         children: [
-          Icon(icon, size: 12, color: AppTheme.textSecondary),
+          Icon(icon, size: 12, color: secondaryText),
           const SizedBox(width: 4),
           Expanded(
             child: Text('$label: $value',
-                style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                style: TextStyle(fontSize: 11, color: secondaryText),
                 overflow: TextOverflow.ellipsis),
           ),
         ],
@@ -687,22 +699,30 @@ class _VehicleStatusCard extends StatelessWidget {
 
 class _VehicleTimelineCard extends StatelessWidget {
   final _MockVehicle vehicle;
-  const _VehicleTimelineCard({required this.vehicle});
+  final bool isDark;
+  const _VehicleTimelineCard({required this.vehicle, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     final style = _StatusStyle.of(vehicle.status);
     final hasOccupiedRange = vehicle.occupiedStartIndex != null && vehicle.occupiedSpan > 0;
 
+    final cardColor = isDark ? AppTheme.darkSurface : Colors.white;
+    final primaryText = isDark ? Colors.white : AppTheme.ink900;
+    final secondaryText = isDark ? Colors.white60 : AppTheme.ink600;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: isDark
+            ? null
+            : [
           BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
         ],
+        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -712,10 +732,10 @@ class _VehicleTimelineCard extends StatelessWidget {
               Expanded(
                 child: Text('${vehicle.brand} ${vehicle.model}',
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryText)),
               ),
               const SizedBox(width: 8),
-              Text(vehicle.plate, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              Text(vehicle.plate, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: secondaryText)),
             ],
           ),
           const SizedBox(height: 8),
@@ -735,7 +755,7 @@ class _VehicleTimelineCard extends StatelessWidget {
                   height: 28,
                   margin: EdgeInsets.only(right: i == _kTimelineColumns - 1 ? 0 : 3),
                   decoration: BoxDecoration(
-                    color: active ? style.color : AppTheme.success.withOpacity(0.16),
+                    color: active ? style.color : AppTheme.success.withOpacity(isDark ? 0.22 : 0.16),
                     borderRadius: BorderRadius.circular(7),
                   ),
                   alignment: Alignment.center,

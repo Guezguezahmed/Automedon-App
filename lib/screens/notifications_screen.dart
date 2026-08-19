@@ -171,7 +171,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatDate(item['date'] ?? ''),
+                    _formatDate(item['daysLeft'] as int? ?? 0),
                     style: AppTextStyles.caption(color: AppTheme.ink600),
                   ),
                 ],
@@ -200,7 +200,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  String _formatDate(String isoDate) {
-    return "Il y a quelques instants";
+  String _formatDate(int daysLeft) {
+    if (daysLeft > 1) return 'Dans $daysLeft jours';
+    if (daysLeft == 1) return 'Demain';
+    if (daysLeft == 0) return "Aujourd'hui";
+    if (daysLeft == -1) return 'Hier';
+    return 'En retard de ${-daysLeft} jours';
   }
 }

@@ -14,6 +14,11 @@ import 'screens/signalements_screen.dart';
 import 'screens/mon_agence_screen.dart';
 import 'screens/reservation_detail_screen.dart';
 
+/// Global reference to the router instance, set once created below.
+/// Used by push_notification_service.dart to navigate from outside the
+/// widget tree (background/terminated message taps have no BuildContext).
+GoRouter? rootRouter;
+
 /// Bridges Riverpod's authProvider (bool) to a ChangeNotifier that
 /// GoRouter can listen to via `refreshListenable`, without GoRouter
 /// itself being recreated on every auth change.
@@ -32,7 +37,7 @@ final _goRouterRefreshProvider = Provider<GoRouterRefreshNotifier>((ref) {
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = ref.watch(_goRouterRefreshProvider);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/splash',
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
@@ -93,4 +98,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  rootRouter = router;
+  return router;
 });

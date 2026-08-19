@@ -69,7 +69,7 @@ class PartenairesScreen extends StatelessWidget {
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(AppTheme.sp4, AppTheme.sp2, AppTheme.sp4, 120),
               itemCount: _mockPartners.length,
-              itemBuilder: (context, i) => _PartnerCard(partner: _mockPartners[i]),
+        itemBuilder: (context, i) => _PartnerCard(partner: _mockPartners[i], isDark: isDark),
             ),
       ),
     );
@@ -86,8 +86,9 @@ class PartenairesScreen extends StatelessWidget {
 
 class _PartnerCard extends StatelessWidget {
   final LeasingPartner partner;
+  final bool isDark;
 
-  const _PartnerCard({required this.partner});
+  const _PartnerCard({required this.partner, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -105,19 +106,19 @@ class _PartnerCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     partner.name,
-                    style: AppTextStyles.displayMd(),
+                    style: AppTextStyles.displayMd(color: isDark ? Colors.white : AppTheme.ink900),
                   ),
                 ),
                 const SizedBox(width: AppTheme.sp2),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: AppTheme.sp3, vertical: AppTheme.sp2),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceApp,
+                    color: isDark ? AppTheme.darkBorder : AppTheme.surfaceApp,
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
                   child: Text(
                     '${partner.amount.toStringAsFixed(3)} DT',
-                    style: AppTextStyles.dataSm(color: AppTheme.ink900),
+                    style: AppTextStyles.dataSm(color: isDark ? Colors.white : AppTheme.ink900),
                   ),
                 ),
                 const SizedBox(width: AppTheme.sp2),
@@ -137,7 +138,7 @@ class _PartnerCard extends StatelessWidget {
             const SizedBox(height: AppTheme.sp2),
             Text(
               '${partner.contractsCount} contrat(s) · ${partner.carsCount} voiture(s)',
-              style: AppTextStyles.bodyMd(),
+              style: AppTextStyles.bodyMd(color: isDark ? Colors.white60 : AppTheme.ink600),
             ),
           ],
         ),
